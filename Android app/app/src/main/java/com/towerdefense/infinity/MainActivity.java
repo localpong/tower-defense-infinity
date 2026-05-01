@@ -1,9 +1,7 @@
 package com.towerdefense.infinity;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
-import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -17,10 +15,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // เช็คว่าเป็นการเปิดแอปครั้งแรกหรือไม่
-        SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
-        boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
-
         // ตั้งค่าให้เต็มจอแบบถาวร
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -28,21 +22,6 @@ public class MainActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.gameWebView);
         WebSettings settings = webView.getSettings();
-        
-        if (isFirstRun) {
-            // ล้าง Cache และข้อมูลต่างๆ เมื่อเปิดแอปครั้งแรก
-            webView.clearCache(true);
-            webView.clearHistory();
-            webView.clearFormData();
-            
-            CookieManager cookieManager = CookieManager.getInstance();
-            cookieManager.removeAllCookies(null);
-            cookieManager.flush();
-
-            // บันทึกว่าผ่านการเปิดครั้งแรกไปแล้ว
-            prefs.edit().putBoolean("isFirstRun", false).apply();
-        }
-
         settings.setJavaScriptEnabled(true); // อนุญาตให้รัน JS
         settings.setDomStorageEnabled(true); // สำคัญสำหรับการ Save เกม (localStorage)
         settings.setDatabaseEnabled(true);

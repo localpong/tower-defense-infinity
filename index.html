@@ -389,12 +389,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 #game-area{position:relative;flex:1;}
 #game-canvas{display:block;width:100%;}
 #speed-ind{position:absolute;top:5px;right:7px;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:var(--bg3);color:var(--muted);pointer-events:none;z-index:10;}
-#speed-ind.x2{background:#2d2200;color:var(--gold);}
+#speed-ind.x2{background:#2d2200;color:var(--gold);} /* Keep this line */
 #speed-ind.x3{background:#2d0000;color:var(--red);}
-#toolbar{display:flex;gap:5px;padding:12px 8px;background:var(--bg2);border-top:1px solid var(--border);justify-content:space-between;align-items:center;}
+#toolbar{display:flex;gap:5px;padding:2px 8px;background:var(--bg2);border-top:1px solid var(--border);justify-content:space-between;align-items:center;}
 #toolbar-towers::-webkit-scrollbar { display: none; }
 .tower-btn{
-  flex:1; min-width:65px; padding:4px 2px; border-radius:12px; border:1px solid var(--border);
+  flex: none; /* Prevent shrinking */
+  min-width:65px; padding:4px 2px; border-radius:12px; border:1px solid var(--border);
   background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
   color:var(--text);cursor:pointer;font-size:16px;display:flex;flex-direction:column;align-items:center;
   gap:1px;transition:all 0.2s;
@@ -403,7 +404,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 .tower-btn .tc{font-size:9px;color:var(--gold);font-weight:700;}
 .tower-btn.selected{
   border-color:var(--blue);background:rgba(59, 130, 246, 0.2);
-  transform: translateY(-4px); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  transform: translateY(-6px) scale(1.05); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 /* Styles for icon buttons in toolbar */
@@ -653,7 +654,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
     </div>
   </div>
   <div id="toolbar" style="padding-bottom: calc(12px + env(safe-area-inset-bottom));">
-    <div id="toolbar-towers" style="display:flex; flex:1; gap:4px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;"></div>
+    <div id="toolbar-towers" style="display:flex; flex:1; gap:4px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; padding:10px 8px;"></div>
     <button id="wave-btn" onclick="startWave()" disabled>⚔️</button>
   </div>
 </div>
