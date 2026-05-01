@@ -30,7 +30,12 @@ jobs:
             echo "Error: SIGNING_KEY secret is empty"
             exit 1
           fi
-          echo "$SIGNING_KEY_BASE64" | base64 -d > release.jks
+          echo "$SIGNING_KEY_BASE64" | base64 -d > release.jks 2>&1
+          if [ ! -f release.jks ] || [ ! -s release.jks ]; then
+            echo "Error: Failed to decode keystore file or file is empty"
+            exit 1
+          fi
+          echo "✓ Keystore decoded successfully ($(stat -f%z release.jks 2>/dev/null || stat -c%s release.jks) bytes)"
 
       - name: Build Signed Release APK
         env:
