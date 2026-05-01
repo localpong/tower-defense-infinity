@@ -34,11 +34,13 @@ jobs:
 
       - name: Build Signed Release APK
         env:
-          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD || secrets.KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           if [ -z "$SIGNING_KEY_ALIAS" ]; then echo "Error: ALIAS secret is empty"; exit 1; fi
+          if [ -z "$SIGNING_STORE_PASSWORD" ]; then echo "Error: KEY_STORE_PASSWORD secret is empty"; exit 1; fi
+          if [ -z "$SIGNING_KEY_PASSWORD" ]; then echo "Error: KEY_PASSWORD secret is empty"; exit 1; fi
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=$(pwd)/release.jks \
             -Pandroid.injected.signing.store.password="$SIGNING_STORE_PASSWORD" \
