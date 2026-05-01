@@ -26,7 +26,11 @@ jobs:
         env:
           SIGNING_KEY_BASE64: ${{ secrets.SIGNING_KEY }}
         run: |
-          python3 -c "import base64, os; if 'SIGNING_KEY_BASE64' in os.environ: open('release.jks', 'wb').write(base64.b64decode(os.environ['SIGNING_KEY_BASE64']))"
+          if [ -z "$SIGNING_KEY_BASE64" ]; then
+            echo "Error: SIGNING_KEY secret is empty"
+            exit 1
+          fi
+          echo "$SIGNING_KEY_BASE64" | base64 -d > release.jks
 
       - name: Build Signed Release APK
         env:
