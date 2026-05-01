@@ -449,7 +449,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 .up-btn.upgrade{border-color:var(--gold);color:var(--gold);}
 .up-btn.sell{border-color:var(--green);color:var(--green);}
 .up-btn:disabled{border-color:var(--bg3);color:#484f58;cursor:default;}
-#msg-overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:30;flex-direction:column;gap:12px;text-align:center;padding:20px;}
+#msg-overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:1000;flex-direction:column;gap:12px;text-align:center;padding:20px;}
 #msg-overlay.show{display:flex;}
 #msg-title2{font-size:26px;font-weight:900;}
 #msg-sub2{font-size:12px;color:var(--muted);}
@@ -474,7 +474,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
       <div style="display:flex; align-items:center; gap: 8px;">
         <button id="home-mute-btn" onclick="toggleMute()" style="background:none; border:none; font-size:18px; cursor:pointer; padding:0 4px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));">🔊</button>
         <div style="color:var(--purple); font-weight:900;">⭐ LV <span id="home-level-val">1</span></div>
-        <div style="font-size:10px; color:var(--muted);">v<span id="app-version"></span></div> <!-- Version number -->
+        <div style="font-size:10px; color:var(--muted); cursor:pointer; display:flex; align-items:center; gap:2px;" onclick="forceRefresh()">v<span id="app-version"></span> <span style="font-size:8px;">🔄</span></div>
       </div>
     </div>
 
@@ -651,13 +651,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
         <button class="up-btn sell" id="up-sell" onclick="doSell()">💰 ขาย</button>
       </div>
     </div>
-    <div id="msg-overlay">
-      <div id="msg-title2"></div>
-      <div id="msg-sub2"></div>
-      <button class="msg-btn primary" id="msg-btn" onclick="hideMsg()">เตรียมตัว</button>
-      <button class="msg-btn secondary" id="msg-btn2" style="display:none" onclick="nextStage()">ด่านถัดไป →</button>
-      <button class="msg-btn secondary" id="msg-btn3" style="display:none" onclick="gotoHome()">🏠 กลับหน้าแรก</button>
-    </div>
   </div>
   <div id="toolbar" style="padding-bottom: calc(12px + env(safe-area-inset-bottom));">
     <div id="toolbar-towers" style="display:flex; flex:1; gap:4px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;"></div>
@@ -665,11 +658,20 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
   </div>
 </div>
 
+<!-- GLOBAL MSG OVERLAY -->
+<div id="msg-overlay">
+  <div id="msg-title2"></div>
+  <div id="msg-sub2"></div>
+  <button class="msg-btn primary" id="msg-btn" onclick="hideMsg()">เตรียมตัว</button>
+  <button class="msg-btn secondary" id="msg-btn2" style="display:none" onclick="nextStage()">ด่านถัดไป →</button>
+  <button class="msg-btn secondary" id="msg-btn3" style="display:none" onclick="gotoHome()">🏠 กลับหน้าแรก</button>
+</div>
+
 </div>
 
 <script>
 // ===== CONFIG =====
-const APP_VERSION = "1.0.2"; // แก้ไขเลขเวอร์ชันที่นี่ที่เดียว
+let APP_VERSION = "1.0.2"; // เวอร์ชันเริ่มต้นในเครื่อง
 
 // ===== DATA =====
 const HEROES = [
@@ -809,11 +811,54 @@ function gotoHome(){
     });
     towerDot.style.display = canUpgradeTw ? 'block' : 'none';
   }
+  syncVersion(false); // ตรวจสอบเงียบๆ ระหว่างสลับหน้า
+  playMenuBGM(); // เล่นเพลงประกอบหน้าเมนู
   updateMuteUI();
   showScreen('home');
 }
+async function syncVersion(autoShow = false) {
+  try {
+    // ดึงไฟล์ version.json จาก GitHub Pages (เติม timestamp เพื่อป้องกัน cache ของ WebView)
+    const response = await fetch('version.json?t=' + Date.now());
+    if (response.ok) {
+      const data = await response.json();
+      if (data.version && data.version !== APP_VERSION) {
+        const serverVer = data.version;
+        // แสดงเลขเวอร์ชันใหม่ใน UI
+        document.getElementById('app-version').textContent = serverVer;
+        
+        if (autoShow) {
+          forceRefresh(serverVer);
+        } else {
+          showToast('🚀 พบเวอร์ชันใหม่: v' + serverVer, 'var(--blue)');
+        }
+        // อัปเดตตัวแปรในเครื่องเพื่อไม่ให้แจ้งเตือนซ้ำในเซสชันเดิม
+        APP_VERSION = serverVer;
+      } else {
+        document.getElementById('app-version').textContent = APP_VERSION;
+      }
+    }
+  } catch (e) { console.log("Offline mode: cannot fetch version"); }
+}
+
+function forceRefresh(newVer = null) {
+  const title = newVer ? `🚀 พบเวอร์ชันใหม่ v${newVer}` : "🔄 อัปเดตเวอร์ชัน";
+  const sub = newVer ? "มีการอัปเดตใหม่พร้อมใช้งาน ต้องการโหลดข้อมูลใหม่เพื่อใช้งานเวอร์ชันล่าสุดหรือไม่?" : "ต้องการโหลดข้อมูลใหม่จาก GitHub เพื่ออัปเดตเวอร์ชันล่าสุดหรือไม่?";
+  showMsg(
+    title,
+    sub,
+    "ตกลง",
+    () => {
+      const newUrl = window.location.origin + window.location.pathname + '?update=' + Date.now();
+      window.location.replace(newUrl);
+    },
+    "ยกเลิก",
+    hideMsg
+  );
+}
 function toggleMute() {
   saveData.isMuted = !saveData.isMuted;
+  updateBgmState(); // อัปเดตสถานะเพลง (เล่น/หยุด) ทันทีที่กด
   updateMuteUI();
   saveGame();
 }
@@ -1168,7 +1213,7 @@ function initAudio() {
 }
 
 function playSfx(type, subType = null) {
-  if (!audioCtx) return;
+  if (!audioCtx || saveData.isMuted) return;
   const now = audioCtx.currentTime;
   const sfxKey = subType !== null ? type + '_' + subType : type;
 
@@ -1812,14 +1857,42 @@ function updateWeather(dt){
 }
 
 // ===== AUDIO SYSTEM =====
+let bgmAudio = null;
+
+function playMenuBGM() {
+  // เพลงสำหรับหน้าเมนู (คุณสามารถเปลี่ยน URL เป็นไฟล์ .mp3 ในเครื่องได้)
+  startBgm("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", 0.2);
+}
+
 function playStageBGM() {
-  initAudio();
-  const s = STAGES[stageIdx % STAGES.length];
-  console.log(`🎵 Playing Ambient for: ${s.name} (${s.weather})`);
-  // ตัวอย่างการใช้งานจริง:
-  // if(window.bgm) window.bgm.pause();
-  // window.bgm = new Audio(`sounds/${s.weather}.mp3`);
-  // window.bgm.loop = true; window.bgm.play();
+  // เพลงสำหรับช่วงตะลุยด่าน
+  startBgm("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3", 0.25);
+}
+
+function startBgm(src, vol) {
+  if (!bgmAudio) {
+    bgmAudio = new Audio();
+    bgmAudio.loop = true;
+  }
+  bgmAudio.volume = vol;
+  
+  // เปลี่ยน Source เฉพาะเมื่อเป็นเพลงใหม่เท่านั้น
+  const targetSrc = new URL(src, window.location.href).href;
+  if (bgmAudio.src !== targetSrc) {
+    bgmAudio.src = src;
+    bgmAudio.load();
+  }
+  updateBgmState();
+}
+
+function updateBgmState() {
+  if (!bgmAudio) return;
+  if (saveData.isMuted) {
+    bgmAudio.pause();
+  } else {
+    // พยายามเล่นเพลง (Browser อาจจะบล็อกจนกว่าจะมีการแตะหน้าจอครั้งแรก)
+    bgmAudio.play().catch(() => console.log("BGM waiting for user interaction..."));
+  }
 }
 
 // ===== WAVES =====
@@ -2667,6 +2740,7 @@ document.getElementById('game-canvas').addEventListener('click',onCanvasClick);
 loadGame();
 gotoHome();
 renderHomeHeroes();
+syncVersion(true); // ตรวจสอบและแจ้งเตือนอัปเดตทันทีที่เข้าแอป
 </script>
 </body>
 </html>
