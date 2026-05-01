@@ -816,8 +816,16 @@ function gotoHome(){
   playMenuBGM(); // เล่นเพลงประกอบหน้าเมนู
   updateMuteUI();
   showScreen('home');
+  _showScreen('home');
 }
 async function syncVersion(autoShow = false) {
+  // Global screen history for back button handling
+  let screenHistory = [];
+
+  function _showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
   try {
     // ดึงไฟล์ version.json จาก GitHub Pages (เติม timestamp เพื่อป้องกัน cache ของ WebView)
     const response = await fetch('version.json?t=' + Date.now());
@@ -2742,6 +2750,37 @@ loadGame();
 gotoHome();
 renderHomeHeroes();
 syncVersion(true); // ตรวจสอบและแจ้งเตือนอัปเดตทันทีที่เข้าแอป
+
+// Function for Android to call to handle back button
+function goBackInApp() {
+  if (screenHistory.length > 1) {
+    screenHistory.pop(); // Remove current screen
+    const prevScreenId = screenHistory[screenHistory.length - 1];
+    // Call the appropriate internal goto function to re-render the previous screen
+    switch (prevScreenId) {
+      case 'home':
+        _gotoHome();
+        break;
+      case 'hero-screen':
+        _gotoHero();
+        break;
+      case 'tower-screen':
+        _gotoTower();
+        break;
+      case 'inventory-screen':
+        _gotoInventory();
+        break;
+      case 'game-screen':
+        _gotoGame(); // Re-initialize the game
+        break;
+      default:
+        _gotoHome(); // Fallback to home
+        break;
+    }
+    return true; // Indicate that back navigation was handled
+  }
+  return false; // Indicate that back navigation was not handled
+}
 </script>
 </body>
 </html>
