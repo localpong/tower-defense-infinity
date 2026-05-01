@@ -24,20 +24,20 @@ jobs:
 
       - name: Decode Keystore
         env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEY }}
         run: |
-          python3 -c "import base64, os; open('release.jks', 'wb').write(base64.b64decode(os.environ['KEYSTORE_BASE64']))"
+          python3 -c "import base64, os; open('release.jks', 'wb').write(base64.b64decode(os.environ['SIGNING_KEY']))"
 
       - name: Build Signed Release APK
         env:
-          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_ALIAS: ${{ secrets.ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -z "$SIGNING_KEY_ALIAS" ]; then echo "Error: SIGNING_KEY_ALIAS is empty"; exit 1; fi
+          if [ -z "$SIGNING_KEY_ALIAS" ]; then echo "Error: ALIAS is empty"; exit 1; fi
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=$(pwd)/release.jks \
-            -Pandroid.injected.signing.store.password="$SIGNING_STORE_PASSWORD" \
+            -Pandroid.injected.signing.store.password="SIGNING_KEY" \
             -Pandroid.injected.signing.key.alias="$SIGNING_KEY_ALIAS" \
             -Pandroid.injected.signing.key.password="$SIGNING_KEY_PASSWORD"
 
