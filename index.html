@@ -391,9 +391,12 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 #speed-ind{position:absolute;top:5px;right:7px;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:var(--bg3);color:var(--muted);pointer-events:none;z-index:10;}
 #speed-ind.x2{background:#2d2200;color:var(--gold);}
 #speed-ind.x3{background:#2d0000;color:var(--red);}
-#toolbar{display:flex;gap:5px;padding:7px 8px;background:var(--bg2);border-top:1px solid var(--border);justify-content:space-between;align-items:center;}
+#toolbar{display:flex;gap:5px;padding:7px 8px;background:var(--bg2);border-top:1px solid var(--border);justify-content:space-between;align-items:center;overflow-x:auto;scrollbar-width:none;}
+#toolbar::-webkit-scrollbar{display:none;}
+#toolbar-towers{display:flex;flex:1;gap:5px;overflow-x:auto;scrollbar-width:none;}
+#toolbar-towers::-webkit-scrollbar{display:none;}
 .tower-btn{
-  flex:1;padding:8px 4px;border-radius:12px;border:1px solid var(--border);
+  flex-shrink:0;min-width:75px;padding:8px 4px;border-radius:12px;border:1px solid var(--border);
   background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
   color:var(--text);cursor:pointer;font-size:18px;display:flex;flex-direction:column;align-items:center;
   gap:1px;transition:all 0.2s;
