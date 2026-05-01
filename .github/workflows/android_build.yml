@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # Updated
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4 # Updated
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -24,25 +24,25 @@ jobs:
 
       - name: Decode Keystore
         env:
-          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_BASE64: ${{ secrets.SIGNING_KEY }}
         run: |
-          python3 -c "import base64, os; open('release.jks', 'wb').write(base64.b64decode(os.environ['SIGNING_KEY']))"
+          python3 -c "import base64, os; if 'SIGNING_KEY_BASE64' in os.environ: open('release.jks', 'wb').write(base64.b64decode(os.environ['SIGNING_KEY_BASE64']))"
 
       - name: Build Signed Release APK
         env:
-          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_KEY }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD || secrets.KEY_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -z "$SIGNING_KEY_ALIAS" ]; then echo "Error: ALIAS is empty"; exit 1; fi
+          if [ -z "$SIGNING_KEY_ALIAS" ]; then echo "Error: ALIAS secret is empty"; exit 1; fi
           ./gradlew assembleRelease \
             -Pandroid.injected.signing.store.file=$(pwd)/release.jks \
-            -Pandroid.injected.signing.store.password="SIGNING_KEY" \
+            -Pandroid.injected.signing.store.password="$SIGNING_STORE_PASSWORD" \
             -Pandroid.injected.signing.key.alias="$SIGNING_KEY_ALIAS" \
             -Pandroid.injected.signing.key.password="$SIGNING_KEY_PASSWORD"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2 # Updated
+        uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/release/app-release.apk
           name: Release ${{ github.ref_name }}
