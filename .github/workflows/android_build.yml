@@ -25,8 +25,16 @@ jobs:
       - name: Decode Keystore
         env:
           SIGNING_KEY_BASE64: ${{ secrets.SIGNING_KEY }}
+        shell: python
         run: |
-          python3 -c "import base64, os; if 'SIGNING_KEY_BASE64' in os.environ: open('release.jks', 'wb').write(base64.b64decode(os.environ['SIGNING_KEY_BASE64']))"
+          import base64, os
+          encoded = os.environ.get('SIGNING_KEY_BASE64')
+          if encoded:
+              with open('release.jks', 'wb') as f:
+                  f.write(base64.b64decode(encoded))
+          else:
+              print('Error: SIGNING_KEY secret is empty')
+              exit(1)
 
       - name: Build Signed Release APK
         env:
