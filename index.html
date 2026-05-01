@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
-<head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Tower Defense Infinity</title>
@@ -141,11 +141,11 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 
 /* ===== HERO UPGRADE SCREEN ===== */
 #hero-screen{background: radial-gradient(circle at top, #1a1f26 0%, #05070a 100%);}
-#hero-top{display:flex;align-items:center;gap:12px;padding:10px 15px;background:rgba(0,0,0,0.4);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);z-index:10;}
-#hero-top{ padding-top: calc(10px + env(safe-area-inset-top)); }
-#hero-top button{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:#fff;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;}
-#hero-top .ht-title{font-size:16px;font-weight:900;flex:1;text-transform:uppercase;letter-spacing:1px;}
-#hero-top .ht-coins{font-size:13px;color:var(--gold);font-weight:700;}
+.screen-top{display:flex;align-items:center;gap:12px;padding:10px 15px;background:rgba(0,0,0,0.4);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);z-index:10;}
+.screen-top{ padding-top: calc(10px + env(safe-area-inset-top)); }
+.screen-top button{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:#fff;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;}
+.screen-top .ht-title{font-size:16px;font-weight:900;flex:1;text-transform:uppercase;letter-spacing:1px;}
+.screen-top .ht-coins{font-size:13px;color:var(--gold);font-weight:700;}
 
 #hero-list{display:flex;gap:8px;padding:10px 15px;overflow-x:auto;scrollbar-width:none;background:rgba(0,0,0,0.2);}
 #hero-list::-webkit-scrollbar{display:none;}
@@ -182,7 +182,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 #hd-lv-bar{background:rgba(255,255,255,0.05);border-radius:8px;height:10px;overflow:hidden;border:1px solid var(--border);margin-top:2px;}
 #hd-lv-fill{height:100%;background:linear-gradient(90deg, var(--blue), var(--purple));box-shadow: 0 0 15px rgba(59,130,246,0.5);transition:width .6s cubic-bezier(0.34, 1.56, 0.64, 1);}
 
-#hd-actions { display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding-top: 5px; }
+.hd-actions { display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding-top: 5px; }
 #hd-upgrade-btn{width:100%;padding:12px;border-radius:12px;border:none;font-size:15px;font-weight:900;cursor:pointer;background:linear-gradient(135deg, var(--gold) 0%, #f59e0b 100%);color:#000;box-shadow:0 3px 0 #b45309, 0 6px 10px rgba(245, 158, 11, 0.2);transition:all .1s;text-transform:uppercase;}
 #tw-upgrade-btn{width:100%;padding:12px;border-radius:12px;border:none;font-size:15px;font-weight:900;cursor:pointer;background:linear-gradient(135deg, var(--gold) 0%, #f59e0b 100%);color:#000;box-shadow:0 3px 0 #b45309, 0 6px 10px rgba(245, 158, 11, 0.2);transition:all .1s;text-transform:uppercase;}
 #hd-upgrade-btn:active{transform:translateY(3px);box-shadow:0 3px 0 #b45309;}
@@ -459,6 +459,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 .msg-btn.secondary{background:var(--bg3);color:var(--text);border:1.5px solid var(--border);}
 </style>
 
+<body>
+
 <div id="root">
 
 <!-- GLOBAL NOTIFICATION -->
@@ -520,7 +522,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 
 <!-- TOWER UPGRADE SCREEN -->
 <div id="tower-screen" class="screen">
-  <div id="hero-top">
+  <div class="screen-top">
     <button onclick="gotoHome()">←</button>
     <div class="ht-title">🗼 Towers & Loadout</div>
     <div class="ht-coins">💎 <span id="tower-gems-val">0</span></div>
@@ -535,7 +537,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
       <div id="tw-lv-big">เลเวล 1</div>
     </div>
     <div id="tw-stats-grid"></div>
-    <div id="hd-actions" style="margin-top: 5px;">
+    <div class="hd-actions" style="margin-top: 5px;">
       <button id="tw-loadout-toggle" onclick="toggleTowerLoadout()">นำเข้าด่าน</button>
       <button id="tw-upgrade-btn" onclick="doTowerPermanentUpgrade()"></button>
     </div>
@@ -544,7 +546,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 
 <!-- HERO UPGRADE SCREEN -->
 <div id="hero-screen" class="screen">
-  <div id="hero-top">
+  <div class="screen-top">
     <button onclick="gotoHome()">←</button>
     <div class="ht-title">🦸 อัพเกรด Hero</div>
     <div class="ht-coins">💎 <span id="hero-coins-val">0</span></div>
@@ -562,7 +564,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
     <div id="hd-stats"></div>
     <div class="hd-skills-title">Unique Skill</div>
     <div id="hd-skills"></div>
-    <div id="hd-actions">
+    <div class="hd-actions">
       <button id="hd-upgrade-btn" onclick="doHeroUpgrade()"></button>
       <button id="hd-equip-btn" onclick="doEquip()"></button>
     </div>
@@ -571,7 +573,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 
 <!-- INVENTORY SCREEN -->
 <div id="inventory-screen" class="screen">
-  <div id="hero-top">
+  <div class="screen-top">
     <button onclick="gotoHome()">←</button>
     <div class="ht-title">📦 Inventory</div>
   </div>
