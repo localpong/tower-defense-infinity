@@ -85,8 +85,8 @@ function buildMinimap(){
 function hideMsg(){document.getElementById('msg-overlay').classList.remove('show');}
 function startGame(){ initGame(); }
 function showMsg(title,sub,btn1Text,btn1Fn,btn2Text,btn2Fn){
-  document.getElementById('msg-title2').textContent=title;
-  document.getElementById('msg-sub2').textContent=sub;
+  document.getElementById('msg-title2').innerHTML=title; // เปลี่ยนเป็น innerHTML เพื่อให้จัดรูปแบบได้
+  document.getElementById('msg-sub2').innerHTML=sub;
   const btn1=document.getElementById('msg-btn');
   const btn2=document.getElementById('msg-btn2');
   const btn3=document.getElementById('msg-btn3');
@@ -450,9 +450,10 @@ function selectTowerForUpgrade(i) {
   const summary = document.getElementById('tw-loadout-summary');
   const maxSlots = getUnlockedSlots();
   summary.innerHTML = '';
-  const unlockThresholds = [1, 5, 10, 15];
+  const unlockThresholds = [1, 1, 1, 1, 10, 20, 30, 40, 50]; // เลเวลที่ปลดล็อกช่องที่ 5 ถึง 9
+  const displaySlots = Math.min(9, maxSlots + 1); // แสดงช่องที่ปลดล็อกแล้ว + 1 ช่องที่กำลังจะปลดล็อก
 
-  for(let s=0; s<4; s++) {
+  for(let s=0; s<displaySlots; s++) {
     const isLocked = s >= maxSlots;
     const tIdx = saveData.selectedTowers[s];
     const slot = document.createElement('div');
@@ -461,7 +462,7 @@ function selectTowerForUpgrade(i) {
     if (isLocked) {
       slot.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; opacity:0.5;">
         <span style="font-size:16px;">🔒</span>
-        <span style="font-size:7px; color:var(--muted); margin-top:2px; font-weight:800;">ⓘ Lv.${unlockThresholds[s]}</span>
+        <span style="font-size:7px; color:var(--muted); margin-top:2px; font-weight:800;">Lv.${unlockThresholds[s]}</span>
       </div>`;
     } else {
       slot.textContent = tIdx !== undefined ? TOWER_TYPES[tIdx].emoji : '';
@@ -548,10 +549,12 @@ function doTowerPermanentUpgrade() {
 
 function getUnlockedSlots() {
   const best = saveData.bestLevel || 1;
-  if (best >= 15) return 4;
-  if (best >= 10) return 3;
-  if (best >= 5) return 2;
-  return 1;
+  if (best >= 50) return 9; // มี 9 ป้อมครบทุกช่อง
+  if (best >= 40) return 8;
+  if (best >= 30) return 7;
+  if (best >= 20) return 6;
+  if (best >= 10) return 5;
+  return 4; // เริ่มต้นให้เลือกได้ 4 ป้อม
 }
 
 function renderHomeTowerSelect() {
@@ -562,9 +565,9 @@ function renderHomeTowerSelect() {
   document.getElementById('home-ts-slots-title').textContent = `Loadout (${selected.length}/${maxSlots})`;
   const visualDiv = document.getElementById('ts-slot-visuals');
   visualDiv.innerHTML = '';
-  for(let i=0; i<4; i++) {
+  for(let i=0; i<maxSlots; i++) {
     const dot = document.createElement('div');
-    dot.style.cssText = `width:20px; height:4px; border-radius:2px; background:${i < maxSlots ? (selected[i] !== undefined ? 'var(--gold)' : 'var(--bg3)') : 'rgba(239, 68, 68, 0.2)'};`;
+    dot.style.cssText = `width:${maxSlots > 5 ? 14 : 20}px; height:4px; border-radius:2px; background:${selected[i] !== undefined ? 'var(--gold)' : 'var(--bg3)'};`;
     visualDiv.appendChild(dot);
   }
 
@@ -596,11 +599,11 @@ function autoRecommendTowers() {
   const sIdx = (lvl - 1) % STAGES.length;
   
   const recommendations = [
-    [0, 1, 3, 2], // ทุ่งหญ้า: สมดุล
-    [1, 3, 0, 2], // ป่าทึบ: เน้นดาเมจหมู่และเลเซอร์
-    [2, 0, 1, 3], // ทะเลทราย: เน้นสโลว์
-    [3, 2, 1, 0], // ภูเขาไฟ: เน้นดาเมจแรง
-    [0, 3, 1, 2]  // ดินแดนน้ำแข็ง: เน้นพิสัยไกล
+    [0, 1, 3, 2, 4, 6, 7, 5, 8, 12, 16, 17], // ทุ่งหญ้า: สมดุล
+    [1, 3, 0, 2, 6, 7, 4, 8, 5, 11, 14, 18], // ป่าทึบ: เน้นดาเมจหมู่และเลเซอร์
+    [2, 0, 1, 3, 4, 7, 6, 5, 8, 10, 13, 15], // ทะเลทราย: เน้นสโลว์
+    [3, 2, 1, 0, 6, 4, 7, 8, 5, 11, 16, 19], // ภูเขาไฟ: เน้นดาเมจแรง
+    [0, 3, 1, 2, 4, 5, 6, 7, 8, 9, 15, 17]  // ดินแดนน้ำแข็ง: เน้นพิสัยไกล
   ];
   
   saveData.selectedTowers = recommendations[sIdx % recommendations.length].slice(0, maxSlots);
@@ -624,9 +627,10 @@ function gotoResult(success, syncedDrops = null){
     if (isMultiplayer && !isHost && syncedDrops) {
       droppedTypes = syncedDrops;
     } else {
-      droppedTypes.push(Math.floor(Math.random() * 4));
-      if(Math.random() < 0.5) droppedTypes.push(Math.floor(Math.random() * 4));
-      if(Math.random() < 0.25) droppedTypes.push(Math.floor(Math.random() * 4));
+      const maxT = TOWER_TYPES.length;
+      droppedTypes.push(Math.floor(Math.random() * maxT));
+      if(Math.random() < 0.5) droppedTypes.push(Math.floor(Math.random() * maxT));
+      if(Math.random() < 0.25) droppedTypes.push(Math.floor(Math.random() * maxT));
       if (isMultiplayer && isHost) sendNetData('STAGE_CLEAR', { drops: droppedTypes });
     }
 
@@ -868,4 +872,27 @@ function checkAndMergeItems() {
     }
   });
   if(merged) checkAndMergeItems();
+}
+
+// ===== ELEMENTAL INFO DIALOG =====
+function showElementInfo() {
+  playSfx('click');
+  const info = `
+    <div style="text-align:left; font-size:13px; line-height:1.7; color:var(--text); margin-top:10px; background:rgba(0,0,0,0.3); padding:12px; border-radius:10px; border:1px solid var(--border); max-height:60vh; overflow-y:auto;">
+      <div style="color:var(--gold); font-weight:900; margin-bottom:4px;">ศัตรูทั่วไป (ด่านปกติ)</div>
+      🧌 โทรลล์ (พืช) : <span style="color:#FF6B35;font-weight:bold;">แพ้ไฟ 🔥</span> <span style="color:var(--muted);font-size:10px;">| กันน้ำแข็ง</span><br>
+      🕷️ แมงมุม (แมลง) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| กันสายฟ้า</span><br>
+      🦇 ค้างคาว (บิน) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span><br>
+      👿 ปีศาจ (มืด) : <span style="color:#9b59b6;font-weight:bold;">แพ้เวทมนตร์ 🪄</span><br>
+      <div style="color:var(--red); font-weight:900; margin-top:8px; margin-bottom:4px;">บอสประจำด่าน (Wave 10)</div>
+      🐉 มังกร (ไฟ) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันไฟ</span><br>
+      🦑 คราเคน (น้ำ) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันน้ำแข็ง</span><br>
+      🐛 หนอนทะเลทราย (ดิน) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันไฟ/ระเบิด</span><br>
+      <div style="margin-top:8px; font-size:10px; color:var(--muted); line-height:1.4;">
+        * โจมตีจุดอ่อน ดาเมจ <span style="color:var(--green);font-weight:bold;">x1.5</span> เท่า<br>
+        * โจมตีธาตุที่ต้านทาน ดาเมจ <span style="color:var(--red);font-weight:bold;">ลดลง 50%</span>
+      </div>
+    </div>
+  `;
+  showMsg('📖 ข้อมูลแพ้ทางธาตุ', info, 'เข้าใจแล้ว', hideMsg);
 }

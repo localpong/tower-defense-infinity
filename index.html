@@ -36,6 +36,7 @@
         <div>🏆 <span id="home-best-val">1</span></div>
       </div>
       <div style="display:flex; align-items:center; gap: 8px;">
+        <button onclick="showElementInfo()" style="background:none; border:none; font-size:18px; cursor:pointer; padding:0 4px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));" title="ข้อมูลธาตุ">📖</button>
         <button id="home-mute-btn" onclick="toggleMute()" style="background:none; border:none; font-size:18px; cursor:pointer; padding:0 4px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));">🔊</button>
         <div style="color:var(--purple); font-weight:900;">⭐ LV <span id="home-level-val">1</span></div>
         <div style="font-size:10px; color:var(--muted); cursor:pointer; display:flex; align-items:center; gap:2px;" onclick="forceRefresh()">v<span id="app-version"></span> <span style="font-size:8px;">🔄</span></div>
@@ -230,6 +231,7 @@
     <div class="hud-s">🌊 <span id="hud-wave">0</span>/10</div>
     <div class="hud-s" style="background:linear-gradient(135deg,#bc8cff,#58a6ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;font-weight:900;">⭐ LV <span id="hud-level" style="-webkit-text-fill-color:inherit;color:inherit;">1</span></div>
     <div style="display:flex; gap:6px; align-items:center;">
+      <button onclick="showElementInfo()" style="background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.1); border-radius:10px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;" title="ข้อมูลธาตุ">📖</button>
       <button id="game-mute-btn" onclick="toggleMute()" style="background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.1); border-radius:10px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;">🔊</button>
       <button id="speed-btn" onclick="cycleSpeed()">1x</button>
       <button id="auto-wave-btn" onclick="toggleAutoWave()">A🌊</button>

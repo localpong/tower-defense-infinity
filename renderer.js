@@ -488,8 +488,9 @@ function drawEnemy(e){
 }
 
 function drawBullet(b){
-  // เพิ่มสีให้ครบตามจำนวนชนิดป้อมที่มี (9 ชนิด) และใส่ Fallback เป็นสีขาว
-  const cols=['#4CAF50','#FF6B35','#64B5F6','#FFD700','#f1c40f','#95a5a6','#e67e22','#3498db','#9b59b6'];
+  // เพิ่มสีให้ครบตามจำนวนชนิดป้อมที่มี (20 ชนิด) และใส่ Fallback เป็นสีขาว
+  const cols=['#4CAF50','#FF6B35','#64B5F6','#FFD700','#f1c40f','#95a5a6','#e67e22','#3498db','#9b59b6',
+              '#8d6e63','#8bc34a','#ff5722','#78909c','#7e57c2','#26c6da','#ab47bc','#d84315','#ffee58','#42a5f5','#e53935'];
   ctx.beginPath();ctx.arc(b.x,b.y,4,0,Math.PI*2);
   ctx.fillStyle=cols[b.type] || '#ffffff';ctx.fill();
 }

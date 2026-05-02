@@ -755,31 +755,49 @@ function dealDmg(e,dmg,isSkill=false,isHero=false,sourceType=null){
   let elementMult = 1.0;
   let elemText = '';
   if (sourceType !== null) {
+    // กำหนดกลุ่มธาตุให้รองรับป้อมทั้ง 20 ชนิด
+    const isFire = [1, 6, 11, 16, 19].includes(sourceType);
+    const isIce = [2].includes(sourceType);
+    const isLightning = [3, 7, 17, 18].includes(sourceType);
+    const isMagic = [8, 13, 15].includes(sourceType);
+
     if (e.isBoss) {
-      if (e.bossType === 1) { // 🐉 บอสมังกร (Fire)
-        if (sourceType === 2) { elementMult = 1.5; elemText = '🌊'; } // แพ้น้ำแข็ง
-        else if (sourceType === 1 || sourceType === 6) { elementMult = 0.5; elemText = '🛡️'; } // กันไฟ
+      if (e.bossType === 2) { // 🐛 หนอนทะเลทราย (Earth)
+        if (isIce) { elementMult = 1.5; elemText = '❄️'; } // แพ้น้ำแข็ง
+        else if (isFire) { elementMult = 0.5; elemText = '🛡️'; } // กันไฟ/ระเบิด
+      } else if (e.bossType === 1) { // 🐉 บอสมังกร (Fire)
+        if (isIce) { elementMult = 1.5; elemText = '🌊'; } // แพ้น้ำแข็ง
+        else if (isFire) { elementMult = 0.5; elemText = '🛡️'; } // กันไฟ
       } else { // 🦑 บอสคราเคน (Water)
-        if (sourceType === 3 || sourceType === 7) { elementMult = 1.5; elemText = '⚡'; } // แพ้สายฟ้า/แสง
-        else if (sourceType === 2) { elementMult = 0.5; elemText = '🛡️'; } // กันน้ำแข็ง
+        if (isLightning) { elementMult = 1.5; elemText = '⚡'; } // แพ้สายฟ้า/แสง
+        else if (isIce) { elementMult = 0.5; elemText = '🛡️'; } // กันน้ำแข็ง
       }
     } else {
       if (e.type === 0) { // 🧌 โทรลล์ (Earth/Nature)
-        if (sourceType === 1 || sourceType === 6) { elementMult = 1.5; elemText = '🔥'; } // แพ้ไฟ(ระเบิด/จรวด)
-        else if (sourceType === 2) { elementMult = 0.5; elemText = '🛡️'; } // กันน้ำแข็ง
+        if (isFire) { elementMult = 1.5; elemText = '🔥'; } // แพ้ไฟ
+        else if (isIce) { elementMult = 0.5; elemText = '🛡️'; } // กันน้ำแข็ง
       } else if (e.type === 1) { // 🕷️ แมงมุม (Beast/Bug)
-        if (sourceType === 2) { elementMult = 1.5; elemText = '❄️'; } // แพ้น้ำแข็ง
-        else if (sourceType === 3 || sourceType === 7) { elementMult = 0.5; elemText = '🛡️'; } // กันสายฟ้า
+        if (isIce) { elementMult = 1.5; elemText = '❄️'; } // แพ้น้ำแข็ง
+        else if (isLightning) { elementMult = 0.5; elemText = '🛡️'; } // กันสายฟ้า
       } else if (e.type === 2) { // 🦇 ค้างคาว (Flying)
-        if (sourceType === 3 || sourceType === 7) { elementMult = 1.5; elemText = '⚡'; } // แพ้สายฟ้า
+        if (isLightning) { elementMult = 1.5; elemText = '⚡'; } // แพ้สายฟ้า
       } else if (e.type === 3) { // 👿 ปีศาจ (Dark)
-        if (sourceType === 8) { elementMult = 1.5; elemText = '✨'; } // แพ้เวทมนตร์(Mage)
+        if (isMagic) { elementMult = 1.5; elemText = '✨'; } // แพ้เวทมนตร์
       }
     }
   }
 
   // Crit System: Hero has higher chance (15%+) and higher multiplier (3x)
-  const critChance = isHero ? (0.15 + lv * 0.02) : (0.05 + lv * 0.01);
+  let critChance = isHero ? (0.15 + lv * 0.02) : (0.05 + lv * 0.01);
+  
+  // โบนัสพิเศษ: ป้อมขนาด 2x2 หรือใหญ่กว่า จะมีโอกาสติดคริติคอลเพิ่มขึ้นอีก 10%
+  if (!isHero && sourceType !== null) {
+    const td = TOWER_TYPES[sourceType];
+    if (td && (td.w || 1) >= 2 && (td.h || 1) >= 2) {
+      critChance += 0.10; // เพิ่มโอกาส 10%
+    }
+  }
+
   const isCrit = Math.random() < critChance;
   const critMult = isHero ? 3 : 2;
   const finalDmg = isCrit ? (dmg * elementMult) * critMult : (dmg * elementMult);

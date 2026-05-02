@@ -48,6 +48,17 @@ const TOWER_TYPES = [
   {name:'จรวด(ไฟ)',emoji:'🚀',cost:200,color:'#e67e22',dmg:65,range:110,rate:0.5,splashR:65,slow:0, w:2, h:2},
   {name:'เทสล่า(สายฟ้า)',emoji:'⚡',cost:220,color:'#3498db',dmg:40,range:85,rate:1.5,splashR:45,slow:0, w:2, h:2},
   {name:'แอลเดอร์(เวท)',emoji:'🪄',cost:300,color:'#9b59b6',dmg:100,range:120,rate:1.2,splashR:0,slow:0, w:2, h:2},
+  {name:'บูมเมอแรง',emoji:'🪃',cost:65,color:'#8d6e63',dmg:25,range:65,rate:1.2,splashR:20,slow:0, w:1, h:1},
+  {name:'ป้อมพิษ(มืด)',emoji:'🧪',cost:110,color:'#8bc34a',dmg:5,range:80,rate:4.0,splashR:0,slow:0.2, w:1, h:1},
+  {name:'พ่นไฟ(ไฟ)',emoji:'♨️',cost:160,color:'#ff5722',dmg:15,range:60,rate:5.0,splashR:40,slow:0, w:2, h:2},
+  {name:'เครื่องบด',emoji:'🪚',cost:140,color:'#78909c',dmg:45,range:50,rate:1.0,splashR:50,slow:0, w:1, h:1},
+  {name:'มนตร์ดำ(เวท)',emoji:'🔮',cost:250,color:'#7e57c2',dmg:80,range:100,rate:0.8,splashR:30,slow:0.3, w:2, h:2},
+  {name:'คลื่นเสียง',emoji:'🔊',cost:190,color:'#26c6da',dmg:20,range:85,rate:2.5,splashR:45,slow:0, w:2, h:2},
+  {name:'หอกเวท(เวท)',emoji:'🔱',cost:280,color:'#ab47bc',dmg:150,range:140,rate:0.5,splashR:0,slow:0, w:1, h:1},
+  {name:'ปืนกลหนัก(ไฟ)',emoji:'💥',cost:350,color:'#d84315',dmg:90,range:100,rate:0.8,splashR:80,slow:0, w:2, h:2},
+  {name:'แสงศักดิ์สิทธิ์(แสง)',emoji:'☀️',cost:400,color:'#ffee58',dmg:120,range:150,rate:1.0,splashR:0,slow:0, w:2, h:2},
+  {name:'พลาสม่า(สายฟ้า)',emoji:'☄️',cost:450,color:'#42a5f5',dmg:200,range:130,rate:0.5,splashR:50,slow:0, w:2, h:2},
+  {name:'ป้อมมังกร(ไฟ)',emoji:'🐉',cost:600,color:'#e53935',dmg:250,range:140,rate:0.4,splashR:60,slow:0, w:2, h:2}
 ];
 
 const UPGRADE_MULT=[1,1.6,2.5,3.8]; // Slightly steeper power curve for upgrades
