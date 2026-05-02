@@ -1,29 +1,43 @@
 /* engine.js - สำหรับ Game Loop, การอัปเดตตำแหน่ง, และ Game Logic ต่างๆ */
 
+let lastDrawTime = 0;
+const FRAME_MIN_TIME = 1000 / 60; // ขีดจำกัด 60 FPS (~16.67ms ต่อเฟรม)
+
 // ===== MAIN LOOP =====
 function loop(ts){
   animFrame=requestAnimationFrame(loop);
+
+  // ระบบจำกัด FPS (Throttle)
+  const elapsed = ts - lastDrawTime;
+  if (elapsed < FRAME_MIN_TIME) return; // ข้ามเฟรมนี้หากยังไม่ถึงเวลา (จอ 120Hz/144Hz จะไม่ทำงานหนักเกินไป)
+  lastDrawTime = ts - (elapsed % FRAME_MIN_TIME); // หักล้างเศษเวลาทบไปเฟรมหน้า ช่วยให้เกมเดินสมูทและไม่กระตุก
+
   const rawDt=Math.min((ts-lastTime)/1000,.1);
   lastTime=ts;
-  const dt=rawDt*speedMult;
   if(!gameOver&&!won){
-    bgAnimTime += dt;
     updateHeroHud();
 
-    if (heroEntity && heroEntity.dead) {
-      heroEntity.respawnTimer -= dt;
-      if (heroEntity.respawnTimer <= 0) {
-        heroEntity.dead = false;
-        heroEntity.hp = heroEntity.maxHp;
-        heroEntity.cooldown = 0; // รีเซ็ตคูลดาวน์เมื่อเกิดใหม่
-      }
-    }
+    // ระบบ Sub-stepping: แยกการวาดภาพ (Render) ออกจากการคำนวณ (Logic)
+    // วนลูปคำนวณลอจิกตามความเร็วเกม (1x, 2x, 3x) เพื่อป้องกันบั๊กกระสุนทะลุศัตรู
+    for (let step = 0; step < speedMult; step++) {
+      const dt = rawDt;
+      bgAnimTime += dt;
 
-    waveTimer+=dt;
-    updateEnemies(dt); updateBullets(dt); updateEnemyBullets(dt); updateHeroBullets(dt); updateTowers(dt); updateParts(dt);
-    updateHero(dt);
-    updateWeather(dt);
-    updatePickups(dt);
+      if (heroEntity && heroEntity.dead) {
+        heroEntity.respawnTimer -= dt;
+        if (heroEntity.respawnTimer <= 0) {
+          heroEntity.dead = false;
+          heroEntity.hp = heroEntity.maxHp;
+          heroEntity.cooldown = 0; // รีเซ็ตคูลดาวน์เมื่อเกิดใหม่
+        }
+      }
+
+      waveTimer+=dt;
+      updateEnemies(dt); updateBullets(dt); updateEnemyBullets(dt); updateHeroBullets(dt); updateTowers(dt); updateParts(dt);
+      updateHero(dt);
+      updateWeather(dt);
+      updatePickups(dt);
+    }
 
     // ===== MULTIPLAYER SYNC (HOST) =====
     if (isMultiplayer && isHost) {
@@ -295,6 +309,8 @@ function initGame(remoteHeroInitialData = null){ // รับข้อมูล 
   canvas.style.height = GAME_HEIGHT + 'px';
   ctx.scale(dpr, dpr);
 
+  if (typeof cacheBackground === 'function') cacheBackground();
+
   updateHeroHud();
   updateHUD();
   updateSpeedUI();
@@ -307,6 +323,7 @@ function initGame(remoteHeroInitialData = null){ // รับข้อมูล 
   if(animFrame){ cancelAnimationFrame(animFrame); animFrame=null; }
   playStageBGM();
   lastTime=0;
+  lastDrawTime=0; // รีเซ็ตการนับเวลาวาดภาพใหม่เมื่อเริ่มด่าน
   animFrame=requestAnimationFrame(loop);
 }
 
@@ -614,20 +631,24 @@ function updateEnemies(dt){
 function updateTowers(dt){
   const h=HEROES[saveData.equippedHero], lv=saveData.heroLevels[saveData.equippedHero];
   const stats=getHeroStats(h,lv);
+  const rangeBonus = stats.rangeBonus || 0;
+  const atkBonusMult = 1 + (stats.atkBonus || 0) / 100;
+  
   towers.forEach(t=>{
     t.recoilAmt = Math.max(0, (t.recoilAmt || 0) - dt * 20); // Decay recoil
     t.cooldown=(t.cooldown||0)-dt;
     if(t.cooldown>0)return;
     const td=TOWER_TYPES[t.type], lvM=UPGRADE_MULT[t.level];
     const rate=td.rate*lvM;
-    const range=td.range*Math.sqrt(lvM)+(stats.rangeBonus||0);
     
+    const range=td.range*Math.sqrt(lvM)+rangeBonus;
+
     // Equipment Bonus (25% per Tier)
     const eq = saveData.equippedWeapons[t.type];
     const eqMult = eq ? (1 + (eq.tier * 0.25)) : 1;
     const permLv = saveData.towerLevels[t.type] || 0;
     const permMult = 1 + (permLv * 0.1);
-    const dmg = td.dmg * lvM * permMult * (1 + (stats.atkBonus||0)/100) * eqMult;
+    const dmg = td.dmg * lvM * permMult * atkBonusMult * eqMult;
 
     let target=null, minP=-1;
     const rangeSq = range * range;

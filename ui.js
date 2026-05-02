@@ -199,32 +199,48 @@ function renderGameToolbar() {
   });
 }
 
+let _lastHeroHudState = {};
 function updateHeroHud(){
   const h=HEROES[saveData.equippedHero], lv=saveData.heroLevels[saveData.equippedHero];
-  document.getElementById('hh-em').textContent=h.emoji;
-  document.getElementById('hh-name').textContent=`${h.name} Lv.${lv+1}`;
+  
+  if (_lastHeroHudState.hero !== h.id || _lastHeroHudState.lv !== lv) {
+    document.getElementById('hh-em').textContent=h.emoji;
+    document.getElementById('hh-name').textContent=`${h.name} Lv.${lv+1}`;
+    _lastHeroHudState.hero = h.id;
+    _lastHeroHudState.lv = lv;
+  }
   
   // Update Hero HP Bar in HUD
   if (heroEntity) {
     const hpPct = Math.max(0, (heroEntity.hp / heroEntity.maxHp) * 100);
-    const hpBar = document.getElementById('hh-hp-bar');
-    if (hpBar) {
-      hpBar.style.width = hpPct + '%';
-      hpBar.style.background = hpPct > 40 ? 'var(--green)' : 'var(--red)';
+    if (_lastHeroHudState.hpPct !== hpPct) {
+      const hpBar = document.getElementById('hh-hp-bar');
+      if (hpBar) {
+        hpBar.style.width = hpPct + '%';
+        hpBar.style.background = hpPct > 40 ? 'var(--green)' : 'var(--red)';
+      }
+      _lastHeroHudState.hpPct = hpPct;
     }
   }
 
   // Update Mana Bar width
-  document.getElementById('hh-mana-bar').style.width = (mana / maxMana * 100) + '%';
+  const manaPct = (mana / maxMana * 100);
+  if (_lastHeroHudState.manaPct !== manaPct) {
+    document.getElementById('hh-mana-bar').style.width = manaPct + '%';
+    _lastHeroHudState.manaPct = manaPct;
+  }
 
   const cost = h.skill.manaCost;
-  const btn=document.getElementById('hh-use');
-  if(mana < cost){
-    btn.disabled=true; btn.textContent=`💧 ${Math.round(mana)}/${cost}`;
-    document.getElementById('hh-skill').textContent=h.skill.name+' (มานาไม่พอ)';
-  } else {
-    btn.disabled=false; btn.textContent=`${h.skill.emoji} ใช้ทักษะ (${cost})`;
-    document.getElementById('hh-skill').textContent=`${h.skill.name} (พร้อมใช้งาน)`;
+  const canCast = mana >= cost;
+  const btnText = canCast ? `${h.skill.emoji} ใช้ทักษะ (${cost})` : `💧 ${Math.round(mana)}/${cost}`;
+  
+  if (_lastHeroHudState.btnText !== btnText || _lastHeroHudState.canCast !== canCast) {
+    const btn=document.getElementById('hh-use');
+    btn.disabled = !canCast;
+    btn.textContent = btnText;
+    document.getElementById('hh-skill').textContent = canCast ? `${h.skill.name} (พร้อมใช้งาน)` : `${h.skill.name} (มานาไม่พอ)`;
+    _lastHeroHudState.btnText = btnText;
+    _lastHeroHudState.canCast = canCast;
   }
 }
 

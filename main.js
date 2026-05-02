@@ -1,7 +1,8 @@
 /* main.js - Entry point สำหรับโหลดและเริ่มการทำงานของเกม */
 
 // ===== CONFIG =====
-let APP_VERSION = "1.0.2"; // เวอร์ชันเริ่มต้นในเครื่อง
+// ดึงค่าเวอร์ชันล่าสุดจาก LocalStorage (ถ้าเข้าครั้งแรกจะเป็น 1.0.0)
+let APP_VERSION = localStorage.getItem('td_version') || "1.0.0";
 
 // ===== GAME STATE =====
 let canvas, ctx;

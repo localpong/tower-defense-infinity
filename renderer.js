@@ -1,5 +1,82 @@
 /* renderer.js - สำหรับวาดภาพหน้าจอ (Canvas Rendering) */
 
+// ===== OFFSCREEN CACHE (OPTIMIZATION) =====
+let bgCacheCanvas = null;
+const enemySpriteCache = {}; // เก็บตรายางภาพศัตรู
+
+function getEnemySprite(type, isBoss) {
+  const key = type + '_' + isBoss;
+  if (enemySpriteCache[key]) return enemySpriteCache[key]; // ถ้ามีภาพแล้ว ดึงไปใช้เลย
+
+  const r2 = isBoss ? CS * 0.45 : CS * 0.28;
+  const pad = 12; // ระยะเผื่อขอบเงาและเส้น
+  const size = r2 * 2 + pad;
+  const center = size / 2;
+
+  const c = document.createElement('canvas');
+  const dpr = window.devicePixelRatio || 1;
+  c.width = size * dpr;
+  c.height = size * dpr;
+  const ctx2 = c.getContext('2d');
+  ctx2.scale(dpr, dpr);
+
+  const baseColors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#95a5a6'];
+  const darkColors = ['#cc5555', '#ccaa33', '#55aa66', '#7f8c8d'];
+  const startColor = (isBoss ? '#8B0000' : baseColors[type]) || '#fff';
+  const endColor = (isBoss ? '#660000' : darkColors[type]) || '#333';
+
+  if (isBoss) {
+    ctx2.beginPath(); ctx2.arc(center, center, r2 + 4, 0, Math.PI * 2);
+    ctx2.strokeStyle = '#ff4444'; ctx2.lineWidth = 2; ctx2.setLineDash([4, 4]); ctx2.stroke(); ctx2.setLineDash([]);
+  }
+
+  const gradient = ctx2.createRadialGradient(center - r2*0.2, center - r2*0.2, r2 * 0.1, center, center, r2);
+  gradient.addColorStop(0, startColor);
+  gradient.addColorStop(1, endColor);
+
+  ctx2.beginPath(); ctx2.arc(center, center, r2, 0, Math.PI * 2);
+  ctx2.fillStyle = gradient; ctx2.fill();
+  ctx2.strokeStyle = endColor; ctx2.lineWidth = 1.5; ctx2.stroke();
+
+  enemySpriteCache[key] = { img: c, r2: r2, center: center, size: size };
+  return enemySpriteCache[key];
+}
+
+function cacheBackground() {
+  if (!bgCacheCanvas) bgCacheCanvas = document.createElement('canvas');
+  const dpr = window.devicePixelRatio || 1;
+  bgCacheCanvas.width = GAME_WIDTH * dpr;
+  bgCacheCanvas.height = GAME_HEIGHT * dpr;
+  const bCtx = bgCacheCanvas.getContext('2d');
+  bCtx.scale(dpr, dpr);
+  bCtx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); // พื้นหลังโปร่งใสเพื่อให้เห็นเมฆ
+
+  const s = STAGES[stageIdx % STAGES.length];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const x = c * CS, y = r * CS;
+    if(isPath(c,r)){
+      bCtx.fillStyle=s.track;
+      bCtx.fillRect(x, y, CS, CS);
+      
+      const noise = Math.abs(Math.sin(c * 12.3 + r * 45.6));
+      bCtx.fillStyle = 'rgba(0,0,0,0.1)';
+      if(noise > 0.7) bCtx.fillRect(x + CS*0.2, y + CS*0.2, CS*0.5, CS*0.5);
+      bCtx.fillStyle = 'rgba(255,255,255,0.05)';
+      if(noise < 0.3) bCtx.fillRect(x + CS*0.4, y + CS*0.6, CS*0.3, CS*0.3);
+
+      bCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+      bCtx.lineWidth = 2;
+      if(!isPath(c, r-1)) { bCtx.beginPath(); bCtx.moveTo(x, y+1); bCtx.lineTo(x+CS, y+1); bCtx.stroke(); }
+      if(!isPath(c, r+1)) { bCtx.beginPath(); bCtx.moveTo(x, y+CS-1); bCtx.lineTo(x+CS, y+CS-1); bCtx.stroke(); }
+      if(!isPath(c-1, r)) { bCtx.beginPath(); bCtx.moveTo(x+1, y); bCtx.lineTo(x+1, y+CS); bCtx.stroke(); }
+      if(!isPath(c+1, r)) { bCtx.beginPath(); bCtx.moveTo(x+CS-1, y); bCtx.lineTo(x+CS-1, y+CS); bCtx.stroke(); }
+    } else {
+      bCtx.fillStyle='rgba(255,255,255,0.02)';
+      bCtx.fillRect(x+1, y+1, CS-2, CS-2);
+    }
+  }
+}
+
 // ===== RENDER =====
 function render(){
   const s=STAGES[stageIdx%STAGES.length];
@@ -23,34 +100,15 @@ function render(){
   }
   ctx.restore();
 
+  if(bgCacheCanvas) {
+    ctx.drawImage(bgCacheCanvas, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+  }
+
+  // อนิเมชั่นหญ้าพริ้วไหว (วาดเฉพาะส่วนที่เคลื่อนไหว)
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    const x = c * CS, y = r * CS;
-    if(isPath(c,r)){
-      // 1. วาดพื้นทางเดินหลัก (Track Base)
-      ctx.fillStyle=s.track;
-      ctx.fillRect(x, y, CS, CS);
-      
-      // 2. เพิ่ม Texture กรวดหินและดินสุ่ม (คงที่ตามตำแหน่งเพื่อให้ภาพไม่กะพริบ)
-      const noise = Math.abs(Math.sin(c * 12.3 + r * 45.6));
-      ctx.fillStyle = 'rgba(0,0,0,0.1)'; // รอยเข้ม (หลุม/เงาหิน)
-      if(noise > 0.7) ctx.fillRect(x + CS*0.2, y + CS*0.2, CS*0.5, CS*0.5);
-      ctx.fillStyle = 'rgba(255,255,255,0.05)'; // รอยสว่าง (แสงสะท้อนหิน)
-      if(noise < 0.3) ctx.fillRect(x + CS*0.4, y + CS*0.6, CS*0.3, CS*0.3);
-
-      // 3. วาดเส้นขอบขรุขระ (Edge) เฉพาะด้านที่ติดกับพื้นหญ้าเพื่อให้ดูมีมิติ
-      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-      ctx.lineWidth = 2;
-      if(!isPath(c, r-1)) { ctx.beginPath(); ctx.moveTo(x, y+1); ctx.lineTo(x+CS, y+1); ctx.stroke(); }
-      if(!isPath(c, r+1)) { ctx.beginPath(); ctx.moveTo(x, y+CS-1); ctx.lineTo(x+CS, y+CS-1); ctx.stroke(); }
-      if(!isPath(c-1, r)) { ctx.beginPath(); ctx.moveTo(x+1, y); ctx.lineTo(x+1, y+CS); ctx.stroke(); }
-      if(!isPath(c+1, r)) { ctx.beginPath(); ctx.moveTo(x+CS-1, y); ctx.lineTo(x+CS-1, y+CS); ctx.stroke(); }
-
-    } else if(!hasTower(c,r)){
-      // วาดพื้นหลัง (หญ้า/ดิน) แบบมีรายละเอียดเบาๆ
-      ctx.fillStyle='rgba(255,255,255,0.02)';
-      ctx.fillRect(x+1, y+1, CS-2, CS-2);
-      // อนิเมชั่นหญ้าพริ้วไหว
+    if(!isPath(c,r) && !hasTower(c,r)){
       if((c*13 + r*7) % 10 < 2) {
+        const x = c * CS, y = r * CS;
         const sway = Math.sin(bgAnimTime * 1.5 + c + r) * 4;
         ctx.strokeStyle = s.detail;
         ctx.lineWidth = 1.5;
@@ -351,26 +409,9 @@ function drawEnemy(e){
   ctx.rotate(wobble);
   ctx.scale(2 - squash, squash); 
   
-  // Define base colors and their darker counterparts for gradients
-  const baseColors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#95a5a6']; // เพิ่มสีเทาสำหรับ Skeleton
-  const darkColors = ['#cc5555', '#ccaa33', '#55aa66', '#7f8c8d'];
-  const startColor = (e.isBoss ? '#8B0000' : baseColors[e.type]) || '#fff';
-  const endColor = (e.isBoss ? '#660000' : darkColors[e.type]) || '#333';
-
-  // Draw outer boss ring if applicable
-  if (e.isBoss) {
-    ctx.beginPath(); ctx.arc(0, 0, r2 + 6, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
-  }
-
-  // Create radial gradient for the enemy body
-  const gradient = ctx.createRadialGradient(-r2*0.2, -r2*0.2, r2 * 0.1, 0, 0, r2);
-  gradient.addColorStop(0, startColor);
-  gradient.addColorStop(1, endColor);
-
-  ctx.beginPath(); ctx.arc(0, 0, r2, 0, Math.PI * 2);
-  ctx.fillStyle = gradient; ctx.fill();
-  ctx.strokeStyle = endColor; ctx.lineWidth = 1.5; ctx.stroke(); // Add a subtle border
+  // วาดภาพศัตรูจาก Cache แทนการคำนวณ Gradient ใหม่ทุกตัวช่วยเพิ่ม FPS ได้มหาศาล
+  const spriteData = getEnemySprite(e.type, e.isBoss);
+  ctx.drawImage(spriteData.img, -spriteData.center, -spriteData.center, spriteData.size, spriteData.size);
 
   if (e.slowTimer > 0) { ctx.fillStyle = 'rgba(100,181,246,0.35)'; ctx.beginPath(); ctx.arc(0, 0, r2 + 2, 0, Math.PI * 2); ctx.fill(); }
   

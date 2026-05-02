@@ -50,9 +50,18 @@ async function syncVersion(autoShow = false) {
     const response = await fetch('version.json?t=' + Date.now());
     if (response.ok) {
       const data = await response.json();
-      if (data.version && data.version !== APP_VERSION) {
-        const serverVer = data.version;
-        // แสดงเลขเวอร์ชันใหม่ใน UI
+      const serverVer = data.version;
+
+      let localVer = localStorage.getItem('td_version');
+      
+      // กรณีเข้าเล่นครั้งแรก (หรือล้างข้อมูลเครื่อง) ให้เซ็ตเวอร์ชันล่าสุดไปเลยเพื่อไม่ให้แจ้งเตือนอัปเดตแบบผิดพลาด
+      if (!localVer) {
+        localVer = serverVer;
+        try { localStorage.setItem('td_version', serverVer); } catch(e) {}
+        APP_VERSION = serverVer;
+      }
+
+      if (serverVer && serverVer !== localVer) {
         document.getElementById('app-version').textContent = serverVer;
         
         if (autoShow) {
@@ -60,13 +69,15 @@ async function syncVersion(autoShow = false) {
         } else {
           showToast('🚀 พบเวอร์ชันใหม่: v' + serverVer, 'var(--blue)');
         }
-        // อัปเดตตัวแปรในเครื่องเพื่อไม่ให้แจ้งเตือนซ้ำในเซสชันเดิม
-        APP_VERSION = serverVer;
       } else {
+        APP_VERSION = serverVer;
         document.getElementById('app-version').textContent = APP_VERSION;
       }
     }
-  } catch (e) { console.log("Offline mode: cannot fetch version"); }
+  } catch (e) { 
+    console.log("Offline mode: cannot fetch version"); 
+    document.getElementById('app-version').textContent = APP_VERSION;
+  }
 }
 
 function forceRefresh(newVer = null) {
@@ -77,6 +88,7 @@ function forceRefresh(newVer = null) {
     sub,
     "ตกลง",
     () => {
+      if (newVer) { try { localStorage.setItem('td_version', newVer); } catch(e) {} }
       const newUrl = window.location.origin + window.location.pathname + '?update=' + Date.now();
       window.location.replace(newUrl);
     },

@@ -7,6 +7,9 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 
 import androidx.appcompat.app.AppCompatActivity;
 import com.github.javiersantos.appupdater.AppUpdater;
@@ -33,20 +36,29 @@ public class MainActivity extends AppCompatActivity {
         settings.setDatabaseEnabled(true);
         settings.setAllowFileAccess(true);
 
-        // ทำให้โหลดหน้าเว็บได้ลื่นไหล
-        webView.setWebViewClient(new WebViewClient());
+        // ตรวจสอบอินเทอร์เน็ตและตั้งค่าการโหลดแคชเพื่อเล่นออฟไลน์
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        if (netInfo != null && netInfo.isConnectedOrConnecting()) {
+            settings.setCacheMode(WebSettings.LOAD_DEFAULT); // โหลดจากเว็บตามปกติถ้ามีเน็ต
+        } else {
+            settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK); // โหลดจากแคชเครื่องถ้าไม่มีเน็ต
+        }
 
-        // ระบบเช็คอัปเดตอัตโนมัติจาก GitHub Releases
-        AppUpdater appUpdater = new AppUpdater(this)
+        // ตรวจสอบการอัปเดตแอปพลิเคชัน (APK) อัตโนมัติจาก GitHub Releases
+        new AppUpdater(this)
             .setUpdateFrom(UpdateFrom.GITHUB)
             .setGitHubUserAndRepo("localpong", "tower-defense-infinity")
             .setDisplay(Display.DIALOG)
             .setButtonUpdate("อัปเดตเลย")
             .setButtonDismiss("ไว้ทีหลัง")
             .setButtonDoNotShowAgain("ไม่ต้องเตือนอีก")
-            .setTitleOnUpdateAvailable("มีเวอร์ชันใหม่!")
-            .setContentOnUpdateAvailable("กรุณาอัปเดตแอปเป็นเวอร์ชันล่าสุดเพื่อการใช้งานที่ดียิ่งขึ้น");
-        appUpdater.start();
+            .setTitleOnUpdateAvailable("มีแอปเวอร์ชันใหม่!")
+            .setContentOnUpdateAvailable("กรุณาอัปเดตแอปพลิเคชันเพื่อการใช้งานที่ดียิ่งขึ้น")
+            .start();
+
+        // ทำให้โหลดหน้าเว็บได้ลื่นไหล
+        webView.setWebViewClient(new WebViewClient());
 
         // ใส่ URL GitHub Pages ของคุณที่นี่
         // เมื่อคุณอัปเดตไฟล์บนเว็บ แอปในเครื่องผู้เล่นจะอัปเดตตามทันที (Upgrad ได้)

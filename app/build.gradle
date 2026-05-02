@@ -2,6 +2,22 @@ plugins {
     id 'com.android.application'
 }
 
+import groovy.json.JsonSlurper
+
+def versionFile = file('../version.json')
+def appVersionName = "1.0.0"
+def appVersionCode = 1
+if (versionFile.exists()) {
+    def json = new JsonSlurper().parseText(versionFile.text)
+    appVersionName = json.version
+
+    // แปลงเลขเวอร์ชัน (เช่น "1.2.3") เป็น versionCode (เช่น 10203)
+    def parts = appVersionName.tokenize('.')
+    if (parts.size() >= 3) {
+        appVersionCode = (parts[0].toInteger() * 10000) + (parts[1].toInteger() * 100) + parts[2].toInteger()
+    }
+}
+
 android {
     namespace 'com.towerdefense.infinity'
     compileSdk 33
@@ -10,8 +26,8 @@ android {
         applicationId "com.towerdefense.infinity"
         minSdk 21
         targetSdk 33
-        versionCode 1
-        versionName "1.1.6"
+        versionCode appVersionCode
+        versionName appVersionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
