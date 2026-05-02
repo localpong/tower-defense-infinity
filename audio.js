@@ -122,10 +122,21 @@ function startBgm(src, vol) {
 
 function updateBgmState() {
   if (!bgmAudio) return;
-  if (saveData.isMuted) {
+  if (saveData.isMuted || document.hidden) {
     bgmAudio.pause();
   } else {
     // พยายามเล่นเพลง (Browser อาจจะบล็อกจนกว่าจะมีการแตะหน้าจอครั้งแรก)
     bgmAudio.play().catch(() => console.log("BGM waiting for user interaction..."));
   }
 }
+
+// ===== VISIBILITY HANDLING =====
+// ปิดเสียงทั้งหมดเมื่อผู้เล่นสลับแอปหรือปิดหน้าจอ
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
+  } else {
+    if (audioCtx && audioCtx.state === 'suspended' && !saveData.isMuted) audioCtx.resume();
+  }
+  updateBgmState();
+});

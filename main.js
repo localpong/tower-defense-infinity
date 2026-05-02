@@ -7,6 +7,7 @@ let APP_VERSION = "1.0.2"; // เวอร์ชันเริ่มต้น�
 let canvas, ctx;
 const COLS=10, ROWS=15;
 let CS=34;
+let GAME_WIDTH, GAME_HEIGHT;
 let gold, hp, mana, maxMana, wave, waveRunning, gameOver, won;
 let towers, enemies, bullets, partList;
 let selectedType = null, selectedTower = null;

@@ -242,7 +242,12 @@ function setupConnection() {
   conn.on('data', data => { handleNetData(data.type, data.payload); });
   conn.on('close', () => {
     isMultiplayer = false;
-    if (waveRunning || hp > 0) showMsg('🌐 หลุดการเชื่อมต่อ', 'เพื่อนของคุณออกจากเกมแล้ว', 'กลับหน้าแรก', gotoHome);
+    conn = null;
+    if (waveRunning || hp > 0) {
+      showMsg('🌐 หลุดการเชื่อมต่อ', 'เพื่อนของคุณออกจากเกมแล้ว', 'กลับหน้าแรก', cancelMultiplayer);
+    } else {
+      cancelMultiplayer();
+    }
   });
 }
 
@@ -272,6 +277,9 @@ function handleNetData(type, p) {
       break;
     case 'SELL':
       towers = towers.filter(t => !(t.c === p.c && t.r === p.r));
+      if (selectedTower && selectedTower.c === p.c && selectedTower.r === p.r) {
+        if (typeof closeUpgrade === 'function') closeUpgrade();
+      }
       playSfx('death');
       break;
     case 'START_WAVE':
@@ -346,6 +354,7 @@ function handleNetData(type, p) {
         if (tw && tw.level < 3 && gold >= p.cost) {
           gold -= p.cost; tw.level++;
           sendNetData('UPGRADE', { c:p.c, r:p.r }); // Host broadcasts the actual upgrade
+          if (selectedTower === tw && typeof openUpgrade === 'function') openUpgrade(tw);
         }
       }
       break;
@@ -356,6 +365,7 @@ function handleNetData(type, p) {
           gold += p.sellAmount;
           towers = towers.filter(x => x !== t);
           sendNetData('SELL', { c:p.c, r:p.r }); // Host broadcasts the actual sell
+          if (selectedTower === t && typeof closeUpgrade === 'function') closeUpgrade();
         }
       }
       break;
@@ -365,8 +375,10 @@ function handleNetData(type, p) {
       break;
     case 'SYNC_ENEMIES':
       if (p && Array.isArray(p)) {
+        // สร้าง Map เพื่อลดเวลาค้นหาจาก O(N^2) ให้เหลือ O(N) ช่วยลดอาการกระตุกเมื่อศัตรูเยอะ
+        const enemyMap = new Map(enemies.map(e => [e.id, e]));
         p.forEach(data => {
-          const e = enemies.find(en => en.id === data.id);
+          const e = enemyMap.get(data.id);
           if (e) { 
             // เคลื่อนที่ศัตรูแบบ Smooth ถ้าตำแหน่งไม่ห่างกันเกินไป
             if (Math.abs(e.progress - data.p) < 0.5) {
@@ -381,7 +393,9 @@ function handleNetData(type, p) {
       break;
     case 'SYNC_HERO':
       if (!remoteHero) {
-        remoteHero = { x: p.c * CS + CS / 2, y: p.r * CS + CS / 2, emoji: HEROES[p.heroId].emoji, heroId: p.heroId, color: HEROES[p.heroId].color };
+        const hData = typeof HEROES !== 'undefined' ? HEROES[p.heroId] : null;
+        if (!hData) return;
+        remoteHero = { x: p.c * CS + CS / 2, y: p.r * CS + CS / 2, emoji: hData.emoji, heroId: p.heroId, color: hData.color };
       }
       // กำหนดเป้าหมายเพื่อให้ด่าน Guest ใช้การทำ Interpolation ในจังหวะวาดภาพ
       remoteHero.targetX = p.c * CS + CS / 2;

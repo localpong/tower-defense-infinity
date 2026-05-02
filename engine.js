@@ -101,11 +101,13 @@ function updateHero(dt) {
   // Combat: Auto-attack nearest enemy in range
   heroEntity.cooldown -= dt;
   if (heroEntity.cooldown <= 0) {
-    let target = null, minDist = heroEntity.range;
+    let target = null, minDistSq = heroEntity.range * heroEntity.range;
     enemies.forEach(e => {
       if (e.dead) return;
-      const d = Math.sqrt((e.x - heroEntity.x)**2 + (e.y - heroEntity.y)**2);
-      if (d < minDist) { target = e; minDist = d; }
+      const dx = e.x - heroEntity.x;
+      const dy = e.y - heroEntity.y;
+      const dSq = dx * dx + dy * dy;
+      if (dSq < minDistSq) { target = e; minDistSq = dSq; }
     });
     if (target) {
       const hIdx = saveData.equippedHero;
@@ -139,8 +141,9 @@ function updateHero(dt) {
   // Collection: Pick up gold and items nearby
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
-    const d = Math.sqrt((p.x - heroEntity.x)**2 + (p.y - heroEntity.y)**2);
-    if (d < 30) {
+    const dx = p.x - heroEntity.x;
+    const dy = p.y - heroEntity.y;
+    if (dx * dx + dy * dy < 900) { // 30 * 30
       if (p.type === 'gold') { gold += p.value; addPart(p.x, p.y, `+${p.value}g`, 18); }
       else { mana = maxMana; addPart(p.x, p.y, '🧪 MAX', 22); }
       playSfx('skill'); pickups.splice(i, 1); updateHUD();
@@ -282,8 +285,15 @@ function initGame(remoteHeroInitialData = null){ // รับข้อมูล 
   let w = area.clientWidth;
   if (!w || w < 100) w = window.innerWidth; // Fallback หาก clientWidth ยังเป็น 0
   CS = Math.floor(w / COLS);
-  canvas.width  = w;
-  canvas.height = ROWS * CS;
+  GAME_WIDTH = w;
+  GAME_HEIGHT = ROWS * CS;
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = GAME_WIDTH * dpr;
+  canvas.height = GAME_HEIGHT * dpr;
+  canvas.style.width = GAME_WIDTH + 'px';
+  canvas.style.height = GAME_HEIGHT + 'px';
+  ctx.scale(dpr, dpr);
 
   updateHeroHud();
   updateHUD();
@@ -339,15 +349,16 @@ function updateHeroBullets(dt) {
     
     const dx = b.tx.x - b.x;
     const dy = b.tx.y - b.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
     
-    if (dist < 10) {
+    const distSq = dx * dx + dy * dy;
+    if (distSq < 100) { // 10 * 10
       dealDmg(b.tx, b.dmg, false, true);
       if (b.heroId === 3) b.tx.slowTimer = 2; // จอมน้ำแข็งยิงแล้วสโลว์ศัตรู
       heroBullets.splice(i, 1);
       const hitEmojis = ['✨', '', '💥', '❄️'];
       if (hitEmojis[b.heroId]) addPart(b.tx.x, b.tx.y, hitEmojis[b.heroId], 24);
     } else {
+      const dist = Math.sqrt(distSq);
       b.x += (dx / dist) * b.spd * dt;
       b.y += (dy / dist) * b.spd * dt;
       b.angle = Math.atan2(dy, dx);
@@ -366,9 +377,9 @@ function updateEnemyBullets(dt) {
     
     const dx = (heroEntity.x || 0) - b.x;
     const dy = (heroEntity.y || 0) - b.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
     
-    if (dist < 12) {
+    const distSq = dx * dx + dy * dy;
+    if (distSq < 144) { // 12 * 12
       heroEntity.hp = Math.max(0, heroEntity.hp - 8); // ดาเมจจากกระสุน
       heroEntity.combatTimer = 5.0; // รีเซ็ตเวลาการต่อสู้เมื่อโดนยิง
       if (heroEntity.hp <= 0) {
@@ -380,6 +391,7 @@ function updateEnemyBullets(dt) {
       playSfx('hit');
       shakeAmt = 5;
     } else {
+      const dist = Math.sqrt(distSq);
       b.x += (dx / dist) * b.spd * dt;
       b.y += (dy / dist) * b.spd * dt;
     }
@@ -410,7 +422,7 @@ function updateWeather(dt){
   const s = STAGES[stageIdx % STAGES.length];
   if(weatherParticles.length < 40) {
     weatherParticles.push({
-      x: Math.random() * canvas.width, y: -20,
+      x: Math.random() * GAME_WIDTH, y: -20,
       vx: s.weather === 'rain' ? 2 : (Math.random() - 0.5) * 50,
       vy: s.weather === 'rain' ? 400 : s.weather === 'snow' ? 50 : 120,
       size: s.weather === 'rain' ? 2 : 4 + Math.random() * 4,
@@ -420,7 +432,7 @@ function updateWeather(dt){
   for(let i=weatherParticles.length-1; i>=0; i--) {
     const p = weatherParticles[i];
     p.x += p.vx * dt; p.y += p.vy * dt;
-    if(p.y > canvas.height) { weatherParticles.splice(i, 1); }
+    if(p.y > GAME_HEIGHT) { weatherParticles.splice(i, 1); }
   }
 }
 
@@ -553,9 +565,15 @@ function updateEnemies(dt){
 
     // Ranged Enemy Shooting Logic
     let isShooting = false;
-    if (e.shootRange > 0 && heroEntity && !heroEntity.dead) {
-      const distH = Math.sqrt((e.x - heroEntity.x)**2 + (e.y - heroEntity.y)**2);
-      if (distH <= e.shootRange) {
+    let distHSq = Infinity;
+    if (heroEntity && !heroEntity.dead) {
+      const hx = e.x - heroEntity.x;
+      const hy = e.y - heroEntity.y;
+      distHSq = hx * hx + hy * hy;
+    }
+
+    if (e.shootRange > 0 && distHSq !== Infinity) {
+      if (distHSq <= e.shootRange * e.shootRange) {
         isShooting = true;
         e.shootTimer -= dt;
         if (e.shootTimer <= 0) {
@@ -570,9 +588,7 @@ function updateEnemies(dt){
     }
 
     // Damage Hero if close
-    if (heroEntity && !heroEntity.dead) {
-      const distH = Math.sqrt((e.x - heroEntity.x)**2 + (e.y - heroEntity.y)**2);
-      if (distH < 25) {
+    if (distHSq < 625) { // 25 * 25
         heroEntity.hp = Math.max(0, heroEntity.hp - (e.isBoss ? 20 : 5) * dt);
         heroEntity.combatTimer = 5.0; // รีเซ็ตเวลาการต่อสู้เมื่อโดนศัตรูประชิดตัว
         if (heroEntity.hp <= 0) {
@@ -582,12 +598,11 @@ function updateEnemies(dt){
           playSfx('death');
         }
       }
-    }
 
     const pos=getPathPos(e.progress, e.pathIdx);
     if(!pos){
-      if(heroShieldCount>0){heroShieldCount--;addPart(canvas.width/2,canvas.height/2,'🛡️',30);}
-      else{hp-=e.isBoss?5:1; updateHUD(); addPart(canvas.width/2,canvas.height/2,'💔',36); shakeAmt=10;}
+      if(heroShieldCount>0){heroShieldCount--;addPart(GAME_WIDTH/2,GAME_HEIGHT/2,'🛡️',30);}
+      else{hp-=e.isBoss?5:1; updateHUD(); addPart(GAME_WIDTH/2,GAME_HEIGHT/2,'💔',36); shakeAmt=10;}
       e.dead=true;
       if(hp<=0){gameOver=true; gotoResult(false); return;}
       continue;
@@ -615,16 +630,18 @@ function updateTowers(dt){
     const dmg = td.dmg * lvM * permMult * (1 + (stats.atkBonus||0)/100) * eqMult;
 
     let target=null, minP=-1;
+    const rangeSq = range * range;
     enemies.forEach(e=>{
       if(e.dead)return;
       const dx=e.x-t.x, dy=e.y-t.y;
-      if(Math.sqrt(dx*dx+dy*dy)<=range && e.progress>minP){target=e;minP=e.progress;}
+      if(dx*dx+dy*dy<=rangeSq && e.progress>minP){target=e;minP=e.progress;}
     });
     if(!target)return;
     t.cooldown=1/rate;
     t.aimAngle=Math.atan2(target.y-t.y,target.x-t.x);
     if(td.splashR>0){
-      enemies.forEach(e=>{if(e.dead)return;const dx=e.x-target.x,dy=e.y-target.y;if(Math.sqrt(dx*dx+dy*dy)<=td.splashR)dealDmg(e,dmg);});
+      const splashSq = td.splashR * td.splashR;
+      enemies.forEach(e=>{if(e.dead)return;const dx=e.x-target.x,dy=e.y-target.y;if(dx*dx+dy*dy<=splashSq)dealDmg(e,dmg);});
       addPart(target.x,target.y,'💥',22);
     } else {
       bullets.push({x:t.x,y:t.y,tx:target,dmg,type:t.type,slow:td.slow,spd:300});
@@ -681,9 +698,9 @@ function updateBullets(dt){
   for(let i=bullets.length-1;i>=0;i--){
     const b=bullets[i];
     if(b.tx.dead){bullets.splice(i,1);continue;}
-    const dx=b.tx.x-b.x,dy=b.tx.y-b.y,d=Math.sqrt(dx*dx+dy*dy);
-    if(d<8){dealDmg(b.tx,b.dmg);if(b.slow>0&&!b.tx.dead)b.tx.slowTimer=2;bullets.splice(i,1);}
-    else{b.x+=dx/d*b.spd*dt;b.y+=dy/d*b.spd*dt;}
+    const dx=b.tx.x-b.x,dy=b.tx.y-b.y,dSq=dx*dx+dy*dy;
+    if(dSq<64){dealDmg(b.tx,b.dmg);if(b.slow>0&&!b.tx.dead)b.tx.slowTimer=2;bullets.splice(i,1);}
+    else{const d=Math.sqrt(dSq);b.x+=dx/d*b.spd*dt;b.y+=dy/d*b.spd*dt;}
   }
 }
 

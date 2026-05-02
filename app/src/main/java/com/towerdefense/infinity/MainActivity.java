@@ -54,6 +54,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (webView != null) {
+            webView.onPause();
+            webView.pauseTimers();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.onResume();
+            webView.resumeTimers();
+        }
+    }
+
+    @Override
     public void onBackPressed() {
         // เรียกใช้ฟังก์ชัน JavaScript goBackInApp() เพื่อจัดการการนำทางย้อนกลับภายในเว็บแอป
         webView.evaluateJavascript("javascript:goBackInApp();", value -> {

@@ -231,7 +231,7 @@ function updateHeroHud(){
 function onCanvasClick(ev){
   if(gameOver||won)return;
   const rect=canvas.getBoundingClientRect();
-  const sx=canvas.width/rect.width;
+  const sx=GAME_WIDTH/rect.width;
   const mx=(ev.clientX-rect.left)*sx, my=(ev.clientY-rect.top)*sx;
   const c=Math.floor(mx/CS), r=Math.floor(my/CS);
 

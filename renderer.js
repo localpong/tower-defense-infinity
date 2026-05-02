@@ -11,12 +11,12 @@ function render(){
   }
 
   ctx.fillStyle=s.bg;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillRect(0,0,GAME_WIDTH,GAME_HEIGHT);
 
   // Cloud Parallax (วาดเมฆหลังทางเดินและป้อม)
   ctx.save();
   for(let i=0; i<3; i++) {
-    const cx = ((bgAnimTime * (8 + i * 4)) % (canvas.width + 300)) - 150;
+    const cx = ((bgAnimTime * (8 + i * 4)) % (GAME_WIDTH + 300)) - 150;
     const cy = (i * 150) + 100;
     ctx.fillStyle = s.cloud;
     ctx.beginPath(); ctx.arc(cx, cy, 60 + i * 20, 0, Math.PI * 2); ctx.fill();
@@ -110,7 +110,7 @@ function render(){
 
   // Screen Tint Overlay
   ctx.fillStyle = s.tint;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
   partList.forEach(p=>{
     ctx.globalAlpha=p.life/p.maxLife;
