@@ -9,7 +9,7 @@ function getEnemySprite(type, isBoss) {
   if (enemySpriteCache[key]) return enemySpriteCache[key]; // ถ้ามีภาพแล้ว ดึงไปใช้เลย
 
   const r2 = isBoss ? CS * 0.45 : CS * 0.28;
-  const pad = 12; // ระยะเผื่อขอบเงาและเส้น
+  const pad = 24; // เพิ่มระยะเผื่อขอบเงาและออร่าให้กว้างขึ้น
   const size = r2 * 2 + pad;
   const center = size / 2;
 
@@ -20,14 +20,18 @@ function getEnemySprite(type, isBoss) {
   const ctx2 = c.getContext('2d');
   ctx2.scale(dpr, dpr);
 
-  const baseColors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#95a5a6'];
-  const darkColors = ['#cc5555', '#ccaa33', '#55aa66', '#7f8c8d'];
-  const startColor = (isBoss ? '#8B0000' : baseColors[type]) || '#fff';
-  const endColor = (isBoss ? '#660000' : darkColors[type]) || '#333';
+  // ปรับชุดสีให้ดูเข้มและน่ากลัวขึ้น (Deeper & Darker)
+  const baseColors = ['#e53935', '#fb8c00', '#43a047', '#546e7a'];
+  const darkColors = ['#3e0000', '#4a2500', '#003300', '#1a1f24'];
+  const startColor = (isBoss ? '#ff1111' : baseColors[type]) || '#fff';
+  const endColor = (isBoss ? '#220000' : darkColors[type]) || '#111';
 
   if (isBoss) {
+    ctx2.shadowColor = 'rgba(255, 0, 0, 0.8)';
+    ctx2.shadowBlur = 15;
     ctx2.beginPath(); ctx2.arc(center, center, r2 + 4, 0, Math.PI * 2);
     ctx2.strokeStyle = '#ff4444'; ctx2.lineWidth = 2; ctx2.setLineDash([4, 4]); ctx2.stroke(); ctx2.setLineDash([]);
+    ctx2.shadowBlur = 0; // รีเซ็ตเงาเพื่อไม่ให้กวนส่วนอื่น
   }
 
   const gradient = ctx2.createRadialGradient(center - r2*0.2, center - r2*0.2, r2 * 0.1, center, center, r2);
@@ -390,6 +394,14 @@ function drawTower(t){
     ctx.fillText(t.level+1,lx,ly+3);
   }
 
+  // วาดเอฟเฟกต์ไฟไหม้และทำให้ป้อมสีทึบลงเมื่อถูกสถานะ Disabled
+  if (t.disabledTimer > 0) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.beginPath(); ctx.arc(0, 0, r2 + 2, 0, Math.PI * 2); ctx.fill();
+    ctx.font = `${CS * 0.6}px serif`;
+    ctx.fillText('🔥', 0, 0);
+  }
+
   ctx.restore(); // Restore context after tower body transformations
 }
 
@@ -432,8 +444,18 @@ function drawEnemy(e){
   
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `${e.isBoss ? CS * 0.5 : CS * 0.35}px serif`;
-  const enemyEmoji = e.isBoss ? '👹' : WALK_EMOJIS[e.type][e.walkAnimState];
+
+  // สร้างออร่าเรืองแสงสีแดงหรือดำรอบๆ ไอคอนศัตรู
+  ctx.shadowColor = e.isBoss ? 'rgba(255, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.8)';
+  ctx.shadowBlur = e.isBoss ? 25 : 12;
+
+  // ปรับขนาดฟอนต์และทำตัวหนา (bold) ให้ใหญ่ขึ้นเล็กน้อยดูดุดัน
+  ctx.font = `bold ${e.isBoss ? CS * 0.6 : CS * 0.4}px serif`;
+  const enemyEmoji = e.isBoss ? (e.bossType === 1 ? '🐉' : '🦑') : WALK_EMOJIS[e.type][e.walkAnimState];
+  ctx.fillText(enemyEmoji, 0, 0);
+
+  // วาดทับอีกชั้นแบบไม่มีเงาเพื่อให้สีหลักชัดเจนขึ้น ไม่จมไปกับเงา
+  ctx.shadowBlur = 0;
   ctx.fillText(enemyEmoji, 0, 0);
   ctx.restore();
 

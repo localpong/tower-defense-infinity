@@ -514,7 +514,8 @@ function spawnEnemy(hpMult,isBoss,spdMult=1, forcedPathIdx=null, forcedType=null
     type: type,
     shootTimer: type === 3 ? 1.5 : 0,
     shootRange: type === 3 ? 160 : 0,
-    summonTimer: isBoss ? 5.0 : 0
+    summonTimer: isBoss ? 5.0 : 0,
+    bossType: (isBoss && wave % 10 === 0) ? 1 : 0 // 1: บอสมังกรพ่นไฟ, 0: บอสคราเคนเสกมอนสเตอร์
   };
   enemies.push(e);
   return e;
@@ -567,16 +568,59 @@ function updateEnemies(dt){
     if (e.isBoss && !e.dead && (!isMultiplayer || isHost)) {
       e.summonTimer -= dt;
       if (e.summonTimer <= 0) {
-        const lvScale = currentLevel - 1;
-        const hpM = WAVE_HP[Math.min(wave - 1, 9)] * (1 + lvScale * 0.3);
-        for(let j = 0; j < 2; j++) {
-          const m = spawnMinion(hpM, e.pathIdx, e.progress);
-          if (m && isMultiplayer && isHost) {
-            sendNetData('SPAWN_MINION', { id: m.id, hpM, pIdx: e.pathIdx, prog: e.progress });
+        if (e.bossType === 1) {
+          // บอสมังกร (Dragon): สกิลพ่นไฟใส่ Hero
+          if (heroEntity && !heroEntity.dead) {
+            const hx = heroEntity.x - e.x;
+            const hy = heroEntity.y - e.y;
+            if (hx * hx + hy * hy < 250 * 250) { // ระยะพ่นไฟรัศมี 250
+              // สร้างเอฟเฟกต์ลูกไฟพุ่งไปหาฮีโร่
+              for (let i = 1; i <= 6; i++) {
+                addPart(e.x + hx * (i / 6) + (Math.random() * 20 - 10), e.y + hy * (i / 6) + (Math.random() * 20 - 10), '🔥', 20 + Math.random() * 15);
+              }
+              heroEntity.hp = Math.max(0, heroEntity.hp - 25); // โดนดาเมจไฟ 25
+              heroEntity.combatTimer = 5.0;
+              playSfx('shoot', 1); // เสียงพ่นไฟ (ใช้เสียงทุ้ม)
+              shakeAmt = 15; // สั่นหน้าจอ
+              if (heroEntity.hp <= 0) {
+                heroEntity.dead = true;
+                heroEntity.respawnTimer = 10;
+                addPart(heroEntity.x, heroEntity.y, '💀', 30);
+                playSfx('death');
+              }
+            }
           }
+
+          // สุ่มเผาป้อมที่อยู่ใกล้เคียง 1-2 ป้อม (รัศมี 250) ให้ปิดใช้งาน 5 วินาที
+          const nearbyTowers = towers.filter(t => {
+            const dx = t.x - e.x;
+            const dy = t.y - e.y;
+            return (dx * dx + dy * dy < 250 * 250) && (!t.disabledTimer || t.disabledTimer <= 0);
+          });
+          if (nearbyTowers.length > 0) {
+            const burnCount = Math.min(nearbyTowers.length, Math.floor(Math.random() * 2) + 1);
+            for (let i = 0; i < burnCount; i++) {
+              const randIdx = Math.floor(Math.random() * nearbyTowers.length);
+              const burnedTower = nearbyTowers.splice(randIdx, 1)[0];
+              burnedTower.disabledTimer = 5.0; // ป้อมหยุดทำงาน 5 วินาที
+              addPart(burnedTower.x, burnedTower.y, '🔥', 35);
+            }
+          }
+
+          e.summonTimer = 4.0; // คูลดาวน์พ่นไฟทุกๆ 4 วินาที (กดดันผู้เล่น)
+        } else {
+          // บอสคราเคน (Kraken): สกิลเสกมอนสเตอร์
+          const lvScale = currentLevel - 1;
+          const hpM = WAVE_HP[Math.min(wave - 1, 9)] * (1 + lvScale * 0.3);
+          for(let j = 0; j < 2; j++) {
+            const m = spawnMinion(hpM, e.pathIdx, e.progress);
+            if (m && isMultiplayer && isHost) {
+              sendNetData('SPAWN_MINION', { id: m.id, hpM, pIdx: e.pathIdx, prog: e.progress });
+            }
+          }
+          e.summonTimer = 8.0; // คูลดาวน์เสกมอนสเตอร์ 8 วินาที
+          addPart(e.x, e.y, '🌀', 30);
         }
-        e.summonTimer = 8.0; // คูลดาวน์สกิล 8 วินาที
-        addPart(e.x, e.y, '🌀', 30);
       }
     }
 
@@ -636,6 +680,14 @@ function updateTowers(dt){
   
   towers.forEach(t=>{
     t.recoilAmt = Math.max(0, (t.recoilAmt || 0) - dt * 20); // Decay recoil
+    
+    // ถ้าระยะเวลาถูกเผายังเหลืออยู่ ให้ป้อมหยุดทำงาน
+    if (t.disabledTimer > 0) {
+      t.disabledTimer -= dt;
+      if (Math.random() < 0.05) addPart(t.x, t.y - 15, '💨', 15); // มีควันลอยขึ้นตอนถูกเผา
+      return; // ข้ามลอจิกการยิงของป้อมนี้ไปเลย
+    }
+
     t.cooldown=(t.cooldown||0)-dt;
     if(t.cooldown>0)return;
     const td=TOWER_TYPES[t.type], lvM=UPGRADE_MULT[t.level];

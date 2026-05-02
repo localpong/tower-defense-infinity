@@ -32,10 +32,10 @@ const STAGES=[
 ];
 
 const WALK_EMOJIS = [
-  ['👺', '👺'], // Type 0: Goblin, Troll
-  ['🧟', '🧟'], // Type 1: Zombie, Walking Person
-  ['👿', '😈'], // Type 2: Imp, Smiling Imp
-  ['💀', '💀']  // Type 3: Skeleton Archer (Ranged)
+  ['🧌', '🧌'], // Type 0: โทรลล์/ยักษ์ (ถึกทน)
+  ['🕷️', '🕷️'], // Type 1: แมงมุมยักษ์ (เดินช้าแต่เลือดเยอะ)
+  ['🦇', '🦇'], // Type 2: ค้างคาวผีดิบ (ความเร็วสูง)
+  ['👽', '👾']  // Type 3: เอเลี่ยน/สัตว์ประหลาด (โจมตีระยะไกล)
 ];
 
 const TOWER_TYPES = [
