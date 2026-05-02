@@ -219,23 +219,23 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
   background: rgba(255,255,255,0.05);
   border: 1px solid var(--border);
   color: #fff;
-  width: 32px; height: 32px;
-  border-radius: 8px;
+  width: 26px; height: 26px;
+  border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; cursor: pointer; z-index: 110;
-  margin-right: 8px; transition: all 0.2s;
+  font-size: 14px; cursor: pointer; z-index: 110;
+  margin-right: 4px; transition: all 0.2s;
 }
 #top-cancel-btn:active { transform: scale(0.9); background: rgba(239, 68, 68, 0.3); }
 
 /* GAME CONTROL BUTTONS */
 #speed-btn, #auto-wave-btn, #auto-upgrade-btn {
-  height: 34px; min-width: 34px;
-  padding: 0 10px;
-  border-radius: 10px;
+  height: 28px; min-width: 28px;
+  padding: 0 6px;
+  border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.1);
   background: rgba(15, 23, 42, 0.8);
   color: #fff;
-  font-size: 10px; font-weight: 900;
+  font-size: 9px; font-weight: 900;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.2s; backdrop-filter: blur(4px);
 }
@@ -346,10 +346,10 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 .stage-btn.cleared{border-color:var(--green);background:#0d2318;}
 .stage-btn.locked{opacity:.4;cursor:default;}
 .stage-btn .s-lbl{font-size:7px;color:var(--muted);margin-top:1px;}
-#game-hud{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;background:var(--bg2);gap:6px;flex-wrap:wrap;}
+#game-hud{display:flex;align-items:center;justify-content:space-between;padding:2px 8px;background:var(--bg2);gap:4px;flex-wrap:wrap;}
 .hud-s{
-  display:flex;align-items:center;gap:5px;font-size:12px;font-weight:800;
-  background: rgba(30, 41, 59, 0.5); padding: 4px 8px; border-radius: 10px;
+  display:flex;align-items:center;gap:3px;font-size:10px;font-weight:800;
+  background: rgba(30, 41, 59, 0.5); padding: 3px 6px; border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(4px);
 }
 .hud-s .hl{color:var(--muted);font-size:10px;font-weight:400;}

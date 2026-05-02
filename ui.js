@@ -3,12 +3,10 @@
 // ===== HUD =====
 function updateHUD(){
   const s = STAGES[stageIdx % STAGES.length];
-  document.getElementById('hud-stage-info').textContent = `${s.emoji} ${s.name}`;
+  document.getElementById('hud-stage-info').innerHTML = `${s.emoji} ${s.name} <span style="background:linear-gradient(135deg,#bc8cff,#58a6ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;font-weight:900;margin-left:4px;">⭐ LV ${currentLevel}</span>`;
   document.getElementById('hud-hp').textContent=hp;
-  document.getElementById('hud-mana').textContent=Math.round(mana);
   document.getElementById('hud-gold').textContent=gold;
   document.getElementById('hud-wave').textContent=wave;
-  document.getElementById('hud-level').textContent=currentLevel;
   updateUpgradePanelButton();
 }
 function updateUpgradePanelButton(){

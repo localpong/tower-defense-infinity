@@ -222,17 +222,15 @@
 
 <!-- GAME SCREEN -->
 <div id="game-screen" class="screen">
-  <div id="game-hud" style="padding-top: calc(5px + env(safe-area-inset-top));">
+  <div id="game-hud" style="padding-top: calc(2px + env(safe-area-inset-top));">
     <button id="top-cancel-btn" onclick="cancelGame()">←</button>
     <div class="hud-s" id="hud-stage-info"></div>
     <div class="hud-s">❤️ <span id="hud-hp">20</span></div>
     <div class="hud-s">💰 <span id="hud-gold">200</span>g</div>
-    <div class="hud-s">💧 <span id="hud-mana">100</span></div>
     <div class="hud-s">🌊 <span id="hud-wave">0</span>/10</div>
-    <div class="hud-s" style="background:linear-gradient(135deg,#bc8cff,#58a6ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;font-weight:900;">⭐ LV <span id="hud-level" style="-webkit-text-fill-color:inherit;color:inherit;">1</span></div>
-    <div style="display:flex; gap:6px; align-items:center;">
-      <button onclick="showElementInfo()" style="background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.1); border-radius:10px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;" title="ข้อมูลธาตุ">📖</button>
-      <button id="game-mute-btn" onclick="toggleMute()" style="background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.1); border-radius:10px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;">🔊</button>
+    <div style="display:flex; gap:4px; align-items:center;">
+      <button onclick="showElementInfo()" style="background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.1); border-radius:8px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;" title="ข้อมูลธาตุ">📖</button>
+      <button id="game-mute-btn" onclick="toggleMute()" style="background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.1); border-radius:8px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;">🔊</button>
       <button id="speed-btn" onclick="cycleSpeed()">1x</button>
       <button id="auto-wave-btn" onclick="toggleAutoWave()">A🌊</button>
       <button id="auto-upgrade-btn" onclick="toggleAutoUpgrade()">A⬆</button>
