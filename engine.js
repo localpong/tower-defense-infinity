@@ -714,7 +714,7 @@ function updateTowers(dt){
     t.aimAngle=Math.atan2(target.y-t.y,target.x-t.x);
     if(td.splashR>0){
       const splashSq = td.splashR * td.splashR;
-      enemies.forEach(e=>{if(e.dead)return;const dx=e.x-target.x,dy=e.y-target.y;if(dx*dx+dy*dy<=splashSq)dealDmg(e,dmg);});
+      enemies.forEach(e=>{if(e.dead)return;const dx=e.x-target.x,dy=e.y-target.y;if(dx*dx+dy*dy<=splashSq)dealDmg(e,dmg,false,false,t.type);});
       addPart(target.x,target.y,'💥',22);
     } else {
       bullets.push({x:t.x,y:t.y,tx:target,dmg,type:t.type,slow:td.slow,spd:300});
@@ -724,18 +724,45 @@ function updateTowers(dt){
   });
 }
 
-function dealDmg(e,dmg,isSkill=false,isHero=false){
+function dealDmg(e,dmg,isSkill=false,isHero=false,sourceType=null){
   const h=HEROES[saveData.equippedHero], lv=saveData.heroLevels[saveData.equippedHero];
   const stats=getHeroStats(h,lv);
   
   // ได้รับมานาเล็กน้อยเมื่อโจมตีโดน (เฉพาะการโจมตีจากป้อม ไม่รวมสกิล)
   // Mana gain from hits removed as per request
 
+  // ระบบธาตุแพ้ทาง (Elemental Weakness)
+  let elementMult = 1.0;
+  let elemText = '';
+  if (sourceType !== null) {
+    if (e.isBoss) {
+      if (e.bossType === 1) { // 🐉 บอสมังกร (Fire)
+        if (sourceType === 2) { elementMult = 1.5; elemText = '🌊'; } // แพ้น้ำแข็ง
+        else if (sourceType === 1 || sourceType === 6) { elementMult = 0.5; elemText = '🛡️'; } // กันไฟ
+      } else { // 🦑 บอสคราเคน (Water)
+        if (sourceType === 3 || sourceType === 7) { elementMult = 1.5; elemText = '⚡'; } // แพ้สายฟ้า/แสง
+        else if (sourceType === 2) { elementMult = 0.5; elemText = '🛡️'; } // กันน้ำแข็ง
+      }
+    } else {
+      if (e.type === 0) { // 🧌 โทรลล์ (Earth/Nature)
+        if (sourceType === 1 || sourceType === 6) { elementMult = 1.5; elemText = '🔥'; } // แพ้ไฟ(ระเบิด/จรวด)
+        else if (sourceType === 2) { elementMult = 0.5; elemText = '🛡️'; } // กันน้ำแข็ง
+      } else if (e.type === 1) { // 🕷️ แมงมุม (Beast/Bug)
+        if (sourceType === 2) { elementMult = 1.5; elemText = '❄️'; } // แพ้น้ำแข็ง
+        else if (sourceType === 3 || sourceType === 7) { elementMult = 0.5; elemText = '🛡️'; } // กันสายฟ้า
+      } else if (e.type === 2) { // 🦇 ค้างคาว (Flying)
+        if (sourceType === 3 || sourceType === 7) { elementMult = 1.5; elemText = '⚡'; } // แพ้สายฟ้า
+      } else if (e.type === 3) { // 👿 ปีศาจ (Dark)
+        if (sourceType === 8) { elementMult = 1.5; elemText = '✨'; } // แพ้เวทมนตร์(Mage)
+      }
+    }
+  }
+
   // Crit System: Hero has higher chance (15%+) and higher multiplier (3x)
   const critChance = isHero ? (0.15 + lv * 0.02) : (0.05 + lv * 0.01);
   const isCrit = Math.random() < critChance;
   const critMult = isHero ? 3 : 2;
-  const finalDmg = isCrit ? dmg * critMult : dmg;
+  const finalDmg = isCrit ? (dmg * elementMult) * critMult : (dmg * elementMult);
   
   e.hp-=finalDmg;
   
@@ -747,9 +774,15 @@ function dealDmg(e,dmg,isSkill=false,isHero=false){
   // Floating Combat Text
   const dmgNum = Math.round(finalDmg);
   if (dmgNum > 0) {
-    const critEmoji = isHero ? '🔥' : '💥';
-    const size = (isHero && isCrit) ? 34 : (isCrit ? 24 : 14);
-    addPart(e.x, e.y - 10, isCrit ? `${critEmoji}${dmgNum}` : dmgNum, size);
+    let txt = dmgNum.toString();
+    let size = (isHero && isCrit) ? 34 : (isCrit ? 24 : 14);
+    
+    if (elementMult > 1.0) { txt = `${elemText}Weak! ${txt}`; size += 6; } // ใหญ่ขึ้นเมื่อตีเข้าจุดอ่อน
+    else if (elementMult < 1.0) { txt = `🛡️Resist ${txt}`; size = Math.max(10, size - 4); } // เล็กลงเมื่อศัตรูกันธาตุ
+
+    if (isCrit) { txt = (isHero ? '🔥' : '💥') + 'Crit! ' + txt; }
+    
+    addPart(e.x, e.y - 10, txt, size);
     if (isHero && isCrit) shakeAmt = 12; // Extra visual impact for Hero Crits
   }
   if(e.hp<=0){
@@ -772,7 +805,7 @@ function updateBullets(dt){
     const b=bullets[i];
     if(b.tx.dead){bullets.splice(i,1);continue;}
     const dx=b.tx.x-b.x,dy=b.tx.y-b.y,dSq=dx*dx+dy*dy;
-    if(dSq<64){dealDmg(b.tx,b.dmg);if(b.slow>0&&!b.tx.dead)b.tx.slowTimer=2;bullets.splice(i,1);}
+    if(dSq<64){dealDmg(b.tx,b.dmg,false,false,b.type);if(b.slow>0&&!b.tx.dead)b.tx.slowTimer=2;bullets.splice(i,1);}
     else{const d=Math.sqrt(dSq);b.x+=dx/d*b.spd*dt;b.y+=dy/d*b.spd*dt;}
   }
 }

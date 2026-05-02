@@ -32,22 +32,22 @@ const STAGES=[
 ];
 
 const WALK_EMOJIS = [
-  ['🧌', '🧌'], // Type 0: โทรลล์/ยักษ์ (ถึกทน)
-  ['🕷️', '🕷️'], // Type 1: แมงมุมยักษ์ (เดินช้าแต่เลือดเยอะ)
-  ['🦇', '🦇'], // Type 2: ค้างคาวผีดิบ (ความเร็วสูง)
-  ['👽', '👾']  // Type 3: เอเลี่ยน/สัตว์ประหลาด (โจมตีระยะไกล)
+  ['🧌', '🧌'], // Type 0: โทรลล์/ยักษ์ (ธาตุพืช แพ้ไฟ🔥)
+  ['🕷️', '🕷️'], // Type 1: แมงมุมยักษ์ (ธาตุแมลง แพ้น้ำแข็ง❄️)
+  ['🦇', '🦇'], // Type 2: ค้างคาวผีดิบ (ธาตุบิน แพ้สายฟ้า/เลเซอร์⚡)
+  ['👿', '👿']  // Type 3: ปีศาจ (ธาตุมืด แพ้เวทมนตร์🪄)
 ];
 
 const TOWER_TYPES = [
   {name:'ธนู',emoji:'🏹',cost:50,color:'#4CAF50',dmg:15,range:80,rate:1.2,splashR:0,slow:0}, // Archer: Basic, low cost
-  {name:'ปืนใหญ่',emoji:'💣',cost:80,color:'#FF6B35',dmg:35,range:70,rate:0.6,splashR:35,slow:0},
-  {name:'น้ำแข็ง',emoji:'❄️',cost:100,color:'#64B5F6',dmg:8,range:75,rate:0.9,splashR:0,slow:0.5},
-  {name:'เลเซอร์',emoji:'⚡',cost:120,color:'#FFD700',dmg:20,range:90,rate:2.0,splashR:0,slow:0},
+  {name:'ปืนใหญ่(ไฟ)',emoji:'💣',cost:80,color:'#FF6B35',dmg:35,range:70,rate:0.6,splashR:35,slow:0},
+  {name:'น้ำแข็ง(น้ำ)',emoji:'❄️',cost:100,color:'#64B5F6',dmg:8,range:75,rate:0.9,splashR:0,slow:0.5},
+  {name:'เลเซอร์(แสง)',emoji:'⚡',cost:120,color:'#FFD700',dmg:20,range:90,rate:2.0,splashR:0,slow:0},
   {name:'สไนเปอร์',emoji:'🎯',cost:150,color:'#f1c40f',dmg:80,range:150,rate:0.4,splashR:0,slow:0},
   {name:'มินิกัน',emoji:'🔫',cost:180,color:'#95a5a6',dmg:5,range:70,rate:5.0,splashR:0,slow:0},
-  {name:'จรวด',emoji:'🚀',cost:200,color:'#e67e22',dmg:40,range:100,rate:0.5,splashR:60,slow:0},
-  {name:'เทสล่า',emoji:'⚡',cost:220,color:'#3498db',dmg:25,range:80,rate:1.5,splashR:40,slow:0},
-  {name:'แอลเดอร์',emoji:'🪄',cost:300,color:'#9b59b6',dmg:60,range:110,rate:1.2,splashR:0,slow:0},
+  {name:'จรวด(ไฟ)',emoji:'🚀',cost:200,color:'#e67e22',dmg:40,range:100,rate:0.5,splashR:60,slow:0},
+  {name:'เทสล่า(สายฟ้า)',emoji:'⚡',cost:220,color:'#3498db',dmg:25,range:80,rate:1.5,splashR:40,slow:0},
+  {name:'แอลเดอร์(เวท)',emoji:'🪄',cost:300,color:'#9b59b6',dmg:60,range:110,rate:1.2,splashR:0,slow:0},
 ];
 
 const UPGRADE_MULT=[1,1.6,2.5,3.8]; // Slightly steeper power curve for upgrades
