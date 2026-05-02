@@ -263,7 +263,9 @@ function handleNetData(type, p) {
       showToast(`🤝 เชื่อมต่อกับ ${p.nickname}`, 'var(--blue)');
       break;
     case 'BUILD':
-      towers.push({c:p.c, r:p.r, x:p.c*CS+CS/2, y:p.r*CS+CS/2, type:p.t, level:0, cooldown:0, recoilAmt:0});
+      const tdBuild = TOWER_TYPES[p.t];
+      const twB = tdBuild.w || 1, thB = tdBuild.h || 1;
+      towers.push({c:p.c, r:p.r, x:p.c*CS+(twB*CS)/2, y:p.r*CS+(thB*CS)/2, type:p.t, level:0, cooldown:0, recoilAmt:0});
       playSfx('build');
       break;
     case 'UPGRADE':
@@ -341,9 +343,10 @@ function handleNetData(type, p) {
     case 'REQUEST_BUILD':
       if (isHost) {
         const td = TOWER_TYPES[p.t];
+        const tw = td.w || 1, th = td.h || 1;
         if (gold >= td.cost) {
           gold -= td.cost;
-          towers.push({c:p.c, r:p.r, x:p.c*CS+CS/2, y:p.r*CS+CS/2, type:p.t, level:0, cooldown:0, recoilAmt:0});
+          towers.push({c:p.c, r:p.r, x:p.c*CS+(tw*CS)/2, y:p.r*CS+(th*CS)/2, type:p.t, level:0, cooldown:0, recoilAmt:0});
           sendNetData('BUILD', { c:p.c, r:p.r, t:p.t }); // Host broadcasts the actual build
         }
       }

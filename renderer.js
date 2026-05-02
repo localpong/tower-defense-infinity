@@ -81,8 +81,23 @@ function render(){
     }
   }
   if(selectedType!==null){
+    const td = TOWER_TYPES[selectedType];
+    const tw = td.w || 1;
+    const th = td.h || 1;
+
     for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-      if(!isPath(c,r)&&!hasTower(c,r)){ctx.fillStyle='rgba(88,166,255,0.1)';ctx.fillRect(c*CS+1,r*CS+1,CS-2,CS-2);}
+      let canBuild = true;
+      for(let i=0; i<tw; i++){
+        for(let j=0; j<th; j++){
+          if(c+i >= COLS || r+j >= ROWS || isPath(c+i, r+j) || hasTower(c+i, r+j)) {
+            canBuild = false; break;
+          }
+        }
+      }
+      if(canBuild){
+        ctx.fillStyle='rgba(88,166,255,0.15)';
+        ctx.fillRect(c*CS+1, r*CS+1, CS*tw-2, CS*th-2);
+      }
     }
   }
   towers.forEach(t=>drawTower(t));
@@ -299,7 +314,11 @@ function drawHeroBullet(b) {
 
 function drawTower(t){
   const td=TOWER_TYPES[t.type];
-  const x=t.c*CS+CS/2, y=t.r*CS+CS/2, r2=CS*.38;
+  const tw = td.w || 1;
+  const th = td.h || 1;
+  const x = t.x, y = t.y;
+  const scaleM = Math.min(tw, th);
+  const r2 = CS * 0.38 * (1 + (scaleM - 1) * 0.6); // ขยายขนาดขึ้นถ้าวางพื้นที่กว้างกว่า
 
   // Draw range circle first, it should not recoil
   if(selectedTower===t){
@@ -335,7 +354,8 @@ function drawTower(t){
   }
 
   // Draw tower emoji
-  ctx.font=`${CS*.36}px serif`;ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(td.emoji,0,0);
+  const fontSize = CS * 0.36 * (1 + (scaleM - 1) * 0.5);
+  ctx.font=`${fontSize}px serif`;ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(td.emoji,0,0);
 
   // Draw level badge
   if(t.level>0){
@@ -372,40 +392,48 @@ function drawEnemy(e){
   const enemyColor = e.isBoss ? '#ff1111' : (baseColors[e.type] || '#fff');
 
   // 1. วาดเงาที่พื้น (วาดก่อนให้ติดพื้น ไม่โยกตามตัว)
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(e.x, e.y + r2 * 0.8, r2 * squash, r2 * 0.5 * squash, 0, 0, Math.PI * 2);
-  ctx.fill();
+  if (!e.isBurrowed) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(e.x, e.y + r2 * 0.8, r2 * squash, r2 * 0.5 * squash, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   ctx.save();
   ctx.translate(e.x, e.y);
 
   // 2. Pseudo-3D Base (ฐานใต้ตัวแบบ Hero วาดที่พื้น)
-  const grad = ctx.createRadialGradient(0, r2*0.5, r2*0.2, 0, r2*0.5, r2*1.1);
-  grad.addColorStop(0, enemyColor);
-  grad.addColorStop(1, 'transparent');
-  ctx.fillStyle = grad;
-  ctx.globalAlpha = 0.4;
-  ctx.beginPath();
-  ctx.ellipse(0, r2*0.5, r2*1.1, r2*0.6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1.0;
+  if (!e.isBurrowed) {
+    const grad = ctx.createRadialGradient(0, r2*0.5, r2*0.2, 0, r2*0.5, r2*1.1);
+    grad.addColorStop(0, enemyColor);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    ctx.ellipse(0, r2*0.5, r2*1.1, r2*0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
 
-  // เอฟเฟกต์น้ำแข็ง (เมื่อโดน Slow) ให้วาดที่ฐาน
-  if (e.slowTimer > 0) { 
-    ctx.fillStyle = 'rgba(100,181,246,0.3)'; 
-    ctx.strokeStyle = 'rgba(100,181,246,0.8)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); 
-    ctx.ellipse(0, r2*0.5, r2*1.1, r2*0.6, 0, 0, Math.PI * 2); 
-    ctx.fill(); 
-    ctx.stroke();
+    // เอฟเฟกต์น้ำแข็ง (เมื่อโดน Slow) ให้วาดที่ฐาน
+    if (e.slowTimer > 0) { 
+      ctx.fillStyle = 'rgba(100,181,246,0.3)'; 
+      ctx.strokeStyle = 'rgba(100,181,246,0.8)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); 
+      ctx.ellipse(0, r2*0.5, r2*1.1, r2*0.6, 0, 0, Math.PI * 2); 
+      ctx.fill(); 
+      ctx.stroke();
+    }
   }
   
   // 3. เลื่อนตำแหน่งตัวอิโมจิขึ้นลงตามการเดิน
-  ctx.translate(0, bobY);
-  ctx.rotate(wobble);
-  ctx.scale(side * (2 - squash), squash); // พลิกซ้ายขวาและยืดหดตัว
+  if (!e.isBurrowed) {
+    ctx.translate(0, bobY);
+    ctx.rotate(wobble);
+    ctx.scale(side * (2 - squash), squash); // พลิกซ้ายขวาและยืดหดตัว
+  } else {
+    ctx.translate(Math.random()*4-2, Math.random()*2-1); // สั่นตอนมุดดิน
+  }
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -416,43 +444,46 @@ function drawEnemy(e){
 
   // ปรับขนาดฟอนต์และทำตัวหนาให้ใหญ่ขึ้นเพราะเราเอาวงกลมพื้นหลังออกแล้ว
   ctx.font = `bold ${e.isBoss ? CS * 1.1 : CS * 0.75}px serif`;
-  const enemyEmoji = e.isBoss ? (e.bossType === 1 ? '🐉' : '🦑') : WALK_EMOJIS[e.type][e.walkAnimState];
-  ctx.fillText(enemyEmoji, 0, -r2 * 0.2);
+  const enemyEmoji = e.isBoss ? (e.bossType === 2 ? (e.isBurrowed ? '🌪️' : '🐛') : (e.bossType === 1 ? '🐉' : '🦑')) : WALK_EMOJIS[e.type][e.walkAnimState];
+  const textY = e.isBurrowed ? 0 : -r2 * 0.2;
+  ctx.fillText(enemyEmoji, 0, textY);
 
   // วาดทับอีกชั้นแบบไม่มีเงาเพื่อให้สีหลักชัดเจนขึ้น ไม่จมไปกับเงา
   ctx.shadowBlur = 0;
-  ctx.fillText(enemyEmoji, 0, -r2 * 0.2);
+  ctx.fillText(enemyEmoji, 0, textY);
   ctx.restore();
 
   // UI หลอดเลือดที่ปรับปรุงใหม่ให้ดูโมเดิร์น
-  const hpRatio = Math.max(0, Math.min(1, e.hp / e.maxHp));
-  const bw = e.isBoss ? CS * 1.5 : CS * 1.1; // กว้างขึ้นสำหรับบอส
-  const bh = e.isBoss ? 4.5 : 3.5;
-  const bx = e.x - bw / 2;
-  const by = e.y - r2 - (e.isBoss ? 24 : 16); // ขยับหลอดเลือดขึ้นให้พ้นหัวอิโมจิ
+  if (!e.isBurrowed) {
+    const hpRatio = Math.max(0, Math.min(1, e.hp / e.maxHp));
+    const bw = e.isBoss ? CS * 1.5 : CS * 1.1; // กว้างขึ้นสำหรับบอส
+    const bh = e.isBoss ? 4.5 : 3.5;
+    const bx = e.x - bw / 2;
+    const by = e.y - r2 - (e.isBoss ? 24 : 16); // ขยับหลอดเลือดขึ้นให้พ้นหัวอิโมจิ
 
-  // พื้นหลังหลอดเลือดแบบโปร่งแสงและมุมโค้ง
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 2); else ctx.fillRect(bx, by, bw, bh); ctx.fill();
+    // พื้นหลังหลอดเลือดแบบโปร่งแสงและมุมโค้ง
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 2); else ctx.fillRect(bx, by, bw, bh); ctx.fill();
 
-  // สีหลอดเลือดเปลี่ยนสถานะ (เขียว -> ส้ม -> แดง)
-  let hpColor = '#3fb950';
-  if (hpRatio <= 0.25) hpColor = '#ff4444';
-  else if (hpRatio <= 0.6) hpColor = '#f0a500';
+    // สีหลอดเลือดเปลี่ยนสถานะ (เขียว -> ส้ม -> แดง)
+    let hpColor = '#3fb950';
+    if (hpRatio <= 0.25) hpColor = '#ff4444';
+    else if (hpRatio <= 0.6) hpColor = '#f0a500';
 
-  ctx.fillStyle = hpColor;
-  ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(bx, by, bw * hpRatio, bh, 2); else ctx.fillRect(bx, by, bw * hpRatio, bh); ctx.fill();
+    ctx.fillStyle = hpColor;
+    ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(bx, by, bw * hpRatio, bh, 2); else ctx.fillRect(bx, by, bw * hpRatio, bh); ctx.fill();
 
-  // ป้ายบอกบอส (Boss Badge) ที่ออกแบบเป็นกล่องข้อความดูพรีเมียมขึ้น
-  if (e.isBoss) {
-    const bdw = 32, bdh = 12, bdx = e.x - bdw / 2, bdy = by - bdh - 4;
-    ctx.fillStyle = '#ff4444';
-    ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(bdx, bdy, bdw, bdh, 4); else ctx.fillRect(bdx, bdy, bdw, bdh); ctx.fill();
-    ctx.font = 'bold 8px sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('BOSS', e.x, bdy + bdh / 2 + 1);
+    // ป้ายบอกบอส (Boss Badge) ที่ออกแบบเป็นกล่องข้อความดูพรีเมียมขึ้น
+    if (e.isBoss) {
+      const bdw = 32, bdh = 12, bdx = e.x - bdw / 2, bdy = by - bdh - 4;
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(bdx, bdy, bdw, bdh, 4); else ctx.fillRect(bdx, bdy, bdw, bdh); ctx.fill();
+      ctx.font = 'bold 8px sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('BOSS', e.x, bdy + bdh / 2 + 1);
+    }
   }
 }
 

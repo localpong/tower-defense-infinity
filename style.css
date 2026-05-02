@@ -90,7 +90,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 
 /* Tower Selection on Home */
 #home-loadout-area { padding: 0 20px; margin-bottom: 10px; }
-.home-ts-grid { display: flex; gap: 10px; justify-content: center; padding: 10px 0; }
+.home-ts-grid { display: flex; gap: 10px; justify-content: center; padding: 10px 0; flex-wrap: wrap; }
 .home-ts-grid::-webkit-scrollbar { display: none; }
 .ts-item-compact {
   background: rgba(255,255,255,0.03); border: 1.5px solid var(--border); border-radius: 12px;
@@ -203,6 +203,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
   display: flex; gap: 10px; justify-content: center; padding: 12px;
   background: rgba(0,0,0,0.4); border-radius: 20px; margin: 10px 15px;
   border: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 .tw-summary-slot { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 12px; font-size: 24px; border: 1px dashed var(--border); transition: all 0.3s; }
 .tw-summary-slot.active { border: 1.5px solid var(--gold); background: rgba(251,191,36,0.1); box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); }

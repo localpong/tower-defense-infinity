@@ -117,7 +117,7 @@ function updateHero(dt) {
   if (heroEntity.cooldown <= 0) {
     let target = null, minDistSq = heroEntity.range * heroEntity.range;
     enemies.forEach(e => {
-      if (e.dead) return;
+      if (e.dead || e.isBurrowed) return;
       const dx = e.x - heroEntity.x;
       const dy = e.y - heroEntity.y;
       const dSq = dx * dx + dy * dy;
@@ -220,7 +220,13 @@ function generateRandomPath(cols, rows) {
 
 // ===== PATH =====
 function isPath(c,r){ return paths.some(path => path.some(p=>p[0]===c && p[1]===r)); }
-function hasTower(c,r){ return towers.some(t=>t.c===c && t.r===r); }
+function hasTower(c,r){
+  return towers.some(t=>{
+    const tw = TOWER_TYPES[t.type].w || 1;
+    const th = TOWER_TYPES[t.type].h || 1;
+    return c >= t.c && c < t.c + tw && r >= t.r && r < t.r + th;
+  });
+}
 
 // ===== GAME STATE TRACKER =====
 let initialGold = 150; // Slightly reduced starting gold
@@ -502,6 +508,7 @@ function spawnEnemy(hpMult,isBoss,spdMult=1, forcedPathIdx=null, forcedType=null
   if(type === 3) { typeHpM = 0.8; typeSpdM = 0.9; } // Ranged
 
   // สุ่มเลือกเส้นทางให้ศัตรูตัวนี้
+  const isDesert = ((currentLevel - 1) % STAGES.length) === 2;
   const pIdx = forcedPathIdx !== null ? forcedPathIdx : Math.floor(Math.random() * paths.length);
   const hp2 = Math.round(baseHP * hpMult * typeHpM);
   const e = {
@@ -515,7 +522,8 @@ function spawnEnemy(hpMult,isBoss,spdMult=1, forcedPathIdx=null, forcedType=null
     shootTimer: type === 3 ? 1.5 : 0,
     shootRange: type === 3 ? 160 : 0,
     summonTimer: isBoss ? 5.0 : 0,
-    bossType: (isBoss && wave % 10 === 0) ? 1 : 0 // 1: บอสมังกรพ่นไฟ, 0: บอสคราเคนเสกมอนสเตอร์
+    bossType: isBoss ? (isDesert ? 2 : (wave % 10 === 0 ? 1 : 0)) : 0, // 2: หนอนมุดดิน, 1: มังกรพ่นไฟ, 0: คราเคน
+    isBurrowed: false
   };
   enemies.push(e);
   return e;
@@ -567,7 +575,18 @@ function updateEnemies(dt){
     // Boss Summoning Logic
     if (e.isBoss && !e.dead && (!isMultiplayer || isHost)) {
       e.summonTimer -= dt;
-      if (e.summonTimer <= 0) {
+      if (e.bossType === 2) {
+        // บอสหนอนทะเลทราย (Sand Worm): มุดดินหลบและพุ่งขึ้นมาสตั้นป้อม
+        if (e.isBurrowed) {
+          if (Math.random() < 0.2) addPart(e.x, e.y, '💨', 15);
+          if (e.summonTimer <= 0) {
+            e.isBurrowed = false; e.summonTimer = 6.0; addPart(e.x, e.y, '💥', 40); playSfx('hit');
+            towers.filter(t => { const dx = t.x - e.x, dy = t.y - e.y; return dx * dx + dy * dy < 150 * 150; }).forEach(t => { t.disabledTimer = 3.0; addPart(t.x, t.y, '💨', 30); });
+          }
+        } else if (e.summonTimer <= 0) {
+          e.isBurrowed = true; e.summonTimer = 2.5; addPart(e.x, e.y, '🕳️', 40); playSfx('skill');
+        }
+      } else if (e.summonTimer <= 0) {
         if (e.bossType === 1) {
           // บอสมังกร (Dragon): สกิลพ่นไฟใส่ Hero
           if (heroEntity && !heroEntity.dead) {
@@ -645,7 +664,8 @@ function updateEnemies(dt){
     }
 
     if (!isShooting) {
-      e.progress += e.speed*(e.slowTimer>0?.4:1)*dt;
+      const spdMult = e.isBurrowed ? 2.0 : 1.0; // เร็วขึ้น 2 เท่าตอนมุดดิน
+      e.progress += e.speed*(e.slowTimer>0?.4:1)*spdMult*dt;
     }
 
     // Damage Hero if close
@@ -705,7 +725,7 @@ function updateTowers(dt){
     let target=null, minP=-1;
     const rangeSq = range * range;
     enemies.forEach(e=>{
-      if(e.dead)return;
+      if(e.dead || e.isBurrowed)return; // ไม่สามารถยิงโดนบอสที่มุดดินอยู่
       const dx=e.x-t.x, dy=e.y-t.y;
       if(dx*dx+dy*dy<=rangeSq && e.progress>minP){target=e;minP=e.progress;}
     });

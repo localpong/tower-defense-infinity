@@ -295,7 +295,11 @@ function onCanvasClick(ev){
   }
 
   // 3. จัดการป้อมที่มีอยู่เดิม (อัพเกรด/เลือกดูข้อมูล)
-  const existing=towers.find(t=>t.c===c&&t.r===r);
+  const existing=towers.find(t=>{
+    const tw = TOWER_TYPES[t.type].w || 1;
+    const th = TOWER_TYPES[t.type].h || 1;
+    return c >= t.c && c < t.c + tw && r >= t.r && r < t.r + th;
+  });
   if(existing){
     if(selectedTower === existing){ closeUpgrade(); return; }
     selectedTower=existing; closeSelType(); openUpgrade(existing); return;
@@ -304,21 +308,36 @@ function onCanvasClick(ev){
   
   // 4. วางป้อมใหม่ (เฉพาะเมื่อไม่ได้เลือก Hero อยู่)
   const td=TOWER_TYPES[selectedType];
-  if(!td || isPath(c,r)) { return; }
+  if(!td) { return; }
+  const tw = td.w || 1, th = td.h || 1;
+  
+  let canBuild = true;
+  for(let i=0; i<tw; i++){
+    for(let j=0; j<th; j++){
+      if(c+i >= COLS || r+j >= ROWS || isPath(c+i, r+j) || hasTower(c+i, r+j)){
+        canBuild = false; break;
+      }
+    }
+  }
+  if(!canBuild) return;
+  
+  const px = c*CS + (tw*CS)/2;
+  const py = r*CS + (th*CS)/2;
+
   if(gold<td.cost){showNotEnoughGold(td, mx, my);return;}
 
   if (isMultiplayer && !isHost) {
     sendNetData('REQUEST_BUILD', { c, r, t: selectedType });
     // แสดงผลทันที (Prediction)
     playSfx('build');
-    addPart(c*CS+CS/2, r*CS+CS/2, '🏗', 22);
+    addPart(px, py, '🏗', 22);
     return;
   }
 
   gold-=td.cost; updateHUD();
-  towers.push({c,r,x:c*CS+CS/2,y:r*CS+CS/2,type:selectedType,level:0,cooldown:0,aimAngle:undefined,recoilAmt:0});
+  towers.push({c,r,x:px,y:py,type:selectedType,level:0,cooldown:0,aimAngle:undefined,recoilAmt:0});
   playSfx('build');
-  addPart(c*CS+CS/2,r*CS+CS/2,'🏗',22);
+  addPart(px, py, '🏗', 22);
   if (isMultiplayer && isHost) sendNetData('BUILD', { c, r, t: selectedType });
 }
 

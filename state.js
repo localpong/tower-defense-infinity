@@ -6,7 +6,7 @@ let saveData = {
   heroMaxHps:[20,20,20,20], nickname: '', friends: [],
   inventory: [], equippedWeapons: [null, null, null, null], 
   infinityLevel:1, bestLevel:1, currentPath: null,
-  selectedTowers: [0],
+  selectedTowers: [0, 1, 2, 3], // เริ่มเกมมีป้อมให้เลือก 4 ชนิดเลย
   towerLevels: [0,0,0,0,0,0,0,0,0], // เพิ่มการเก็บเลเวลป้อมถาวร 9 ชนิด
   invSeen: false,
   isMuted: false,
