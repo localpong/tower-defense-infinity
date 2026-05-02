@@ -69,7 +69,7 @@ function loop(ts){
 
     if(waveRunning && enemies.length===0 && (isMultiplayer ? (isHost && waveQueue.length===0) : waveQueue.length===0)){
       waveRunning=false;
-      if(wave>=10){ won=true; gotoResult(true); return; }
+      if(wave>=10){ won=true; collectAllPickups(); gotoResult(true); return; }
       // Auto start next wave if enabled
       if(autoWaveEnabled) {
         startWave();
@@ -152,13 +152,24 @@ function updateHero(dt) {
     }
   }
 
-  // Collection: Pick up gold and items nearby
+  // Collection: Pick up gems and items nearby
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
     const dx = p.x - heroEntity.x;
     const dy = p.y - heroEntity.y;
     if (dx * dx + dy * dy < 900) { // 30 * 30
       if (p.type === 'gold') { gold += p.value; addPart(p.x, p.y, `+${p.value}g`, 18); }
+      else if (p.type === 'gem') { saveData.gems += p.value; sessionGems += p.value; saveGame(); addPart(p.x, p.y, `+${p.value}💎`, 18); }
+      else if (p.type === 'item') { 
+        const tLen = typeof TOWER_TYPES !== 'undefined' ? TOWER_TYPES.length : 20;
+        const randType = Math.floor(Math.random() * tLen);
+        saveData.inventory.push({type: randType, tier: 1});
+        sessionItems.push(randType);
+        saveGame();
+        if(typeof checkAndMergeItems === 'function') checkAndMergeItems();
+        addPart(p.x, p.y, '🎁', 18);
+        showToast('ได้รับไอเทม 🎁', 'var(--gold)');
+      }
       else { mana = maxMana; addPart(p.x, p.y, '🧪 MAX', 22); }
       playSfx('skill'); pickups.splice(i, 1); updateHUD();
     }
@@ -246,6 +257,8 @@ function initGame(remoteHeroInitialData = null){ // รับข้อมูล 
   heroBullets=[];
   waveQueue=[]; waveTimer=0;
   heroShieldCount=0;
+  sessionGems=0;
+  sessionItems=[];
 
   // จัดการระบบหลายเส้นทางตามเลเวล
   let numPaths = currentLevel >= 20 ? 3 : currentLevel >= 10 ? 2 : 1;
@@ -422,19 +435,53 @@ function updateEnemyBullets(dt) {
 }
 
 // ===== PICKUP SYSTEM =====
+function collectAllPickups() {
+  for(let i=pickups.length-1; i>=0; i--) {
+    const p = pickups[i];
+    if(p.type === 'gold') {
+      gold += p.value;
+    } else if (p.type === 'gem') {
+      saveData.gems += p.value;
+      sessionGems += p.value;
+    } else if (p.type === 'item') {
+      const tLen = typeof TOWER_TYPES !== 'undefined' ? TOWER_TYPES.length : 20;
+      const randType = Math.floor(Math.random() * tLen);
+      saveData.inventory.push({type: randType, tier: 1});
+      sessionItems.push(randType);
+    }
+    pickups.splice(i, 1);
+  }
+  saveGame();
+  if(typeof checkAndMergeItems === 'function') checkAndMergeItems();
+  updateHUD();
+}
+
 function updatePickups(dt) {
   for(let i=pickups.length-1; i>=0; i--) {
     const p = pickups[i];
     p.life -= dt;
     p.offsetY = Math.sin(Date.now() / 200) * 5; // อนิเมชั่นลอยขึ้นลง
     
-    // Auto-collect gold when it expires
+    // Auto-collect items when it expires
     if(p.life <= 0) {
       if(p.type === 'gold') {
         gold += p.value;
-        updateHUD();
         addPart(p.x, p.y, `+${p.value}g`, 16);
+      } else if (p.type === 'gem') {
+        saveData.gems += p.value;
+        sessionGems += p.value;
+        saveGame();
+        addPart(p.x, p.y, `+${p.value}💎`, 16);
+      } else if (p.type === 'item') {
+        const tLen = typeof TOWER_TYPES !== 'undefined' ? TOWER_TYPES.length : 20;
+        const randType = Math.floor(Math.random() * tLen);
+        saveData.inventory.push({type: randType, tier: 1});
+        sessionItems.push(randType);
+        saveGame();
+        if(typeof checkAndMergeItems === 'function') checkAndMergeItems();
+        addPart(p.x, p.y, '🎁', 16);
       }
+      updateHUD();
       pickups.splice(i, 1);
     }
   }
@@ -685,7 +732,7 @@ function updateEnemies(dt){
       if(heroShieldCount>0){heroShieldCount--;addPart(GAME_WIDTH/2,GAME_HEIGHT/2,'🛡️',30);}
       else{hp-=e.isBoss?5:1; updateHUD(); addPart(GAME_WIDTH/2,GAME_HEIGHT/2,'💔',36); shakeAmt=10;}
       e.dead=true;
-      if(hp<=0){gameOver=true; gotoResult(false); return;}
+      if(hp<=0){gameOver=true; collectAllPickups(); gotoResult(false); return;}
       continue;
     }
     e.x=pos.x; e.y=pos.y;
@@ -826,10 +873,19 @@ function dealDmg(e,dmg,isSkill=false,isHero=false,sourceType=null){
   if(e.hp<=0){
     e.dead=true;
     const reward = Math.round((e.reward || 0)*(1+(stats.goldBonus||0)/100));
-    pickups.push({ x: e.x, y: e.y, life: 15, offsetY: 0, type: 'gold', value: reward, emoji: '💰' });
+    gold += reward; // ได้ทองทันที
+    addPart(e.x, e.y, `+${reward}g`, 14); // แสดงตัวเลขทองที่ได้
     
-    // ดรอปขวดมานา (โอกาส 3%)
-    if(Math.random() < 0.03) {
+    // สุ่มดรอปเพชร 💎 (โอกาส 5%)
+    if(Math.random() < 0.05) {
+      pickups.push({ x: e.x, y: e.y, life: 15, offsetY: 0, type: 'gem', value: 1, emoji: '💎' });
+    } 
+    // สุ่มดรอปไอเทม 🎁 (โอกาส 2%)
+    else if(Math.random() < 0.02) {
+      pickups.push({ x: e.x, y: e.y, life: 15, offsetY: 0, type: 'item', emoji: '🎁' });
+    } 
+    // ดรอปขวดมานา 🧪 (โอกาส 3%)
+    else if(Math.random() < 0.03) {
       pickups.push({ x: e.x, y: e.y, life: 10, offsetY: 0, type: 'mana', emoji: '🧪' });
     }
 

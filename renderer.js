@@ -125,7 +125,7 @@ function render(){
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowBlur = 10;
-    ctx.shadowColor = p.type === 'gold' ? 'var(--gold)' : 'var(--blue)';
+    ctx.shadowColor = p.type === 'gold' ? 'var(--gold)' : (p.type === 'gem' ? '#64B5F6' : (p.type === 'item' ? 'var(--purple)' : 'var(--green)'));
     ctx.fillText(p.emoji, p.x, p.y + p.offsetY);
     ctx.restore();
   });

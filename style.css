@@ -380,7 +380,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 #speed-btn.x2{border-color:var(--gold);color:var(--gold);}
 #speed-btn.x3{border-color:var(--red);color:var(--red);}
 #game-area{position:relative;flex:1;}
-#game-canvas{display:block;width:100%;}
+#game-canvas{display:block;width:100%;touch-action:none;}
 #speed-ind{position:absolute;top:5px;right:7px;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:var(--bg3);color:var(--muted);pointer-events:none;z-index:10;}
 #speed-ind.x2{background:#2d2200;color:var(--gold);} /* Keep this line */
 #speed-ind.x3{background:#2d0000;color:var(--red);}

@@ -244,58 +244,74 @@ function updateHeroHud(){
   }
 }
 
-function onCanvasClick(ev){
-  if(gameOver||won)return;
-  const rect=canvas.getBoundingClientRect();
-  const sx=GAME_WIDTH/rect.width;
-  const mx=(ev.clientX-rect.left)*sx, my=(ev.clientY-rect.top)*sx;
-  const c=Math.floor(mx/CS), r=Math.floor(my/CS);
+let isPointerDown = false;
+let isDraggingHero = false;
+let dragStartX = 0;
+let dragStartY = 0;
 
-  // 1. Hero Selection Priority (คลิกที่ตัว Hero)
-  if(heroEntity && !heroEntity.dead) {
-    const distH = Math.sqrt((mx - heroEntity.x)**2 + (my - heroEntity.y)**2);
-    if (distH < 35) {
-      heroEntity.selected = !heroEntity.selected;
+function onPointerDown(ev) {
+  if (gameOver || won) return;
+  isPointerDown = true;
+  const rect = canvas.getBoundingClientRect();
+  const sx = GAME_WIDTH / rect.width;
+  const mx = (ev.clientX - rect.left) * sx, my = (ev.clientY - rect.top) * sx;
+  dragStartX = mx;
+  dragStartY = my;
+
+  if (heroEntity && !heroEntity.dead) {
+    const distH = Math.sqrt((mx - heroEntity.x) ** 2 + (my - heroEntity.y) ** 2);
+    if (distH < 50) { // ระยะจับกว้างขึ้นเพื่อให้จิ้มง่าย
+      isDraggingHero = true;
+      heroEntity.selected = true;
       playSfx('click');
-      if(heroEntity.selected) {
-        closeSelType(); // ยกเลิกการเลือกป้อมที่จะวางทันทีเพื่อให้คุม Hero ได้
-        closeUpgrade(); // ปิดหน้าต่างอัพเกรดถ้าเปิดอยู่
-        addPart(heroEntity.x, heroEntity.y - 20, '☝️', 20);
-      }
-      return;
+      closeSelType();
+      closeUpgrade();
+      addPart(heroEntity.x, heroEntity.y - 20, '☝️', 20);
     }
   }
+}
 
-  // 2. คำสั่งเดิน Hero หรือโต้ตอบกับวัตถุ (ถ้าเราเลือก Hero ตัวนั้นอยู่)
-  if (heroEntity && heroEntity.selected && !heroEntity.dead) {
-    // ตรวจสอบว่าคลิกโดน Item หรือไม่
-    const clickedPickup = pickups.find(p => Math.sqrt((mx - p.x)**2 + (my - p.y)**2) < 30);
-    if (clickedPickup) {
-      heroEntity.targetX = clickedPickup.x;
-      heroEntity.targetY = clickedPickup.y;
-      addPart(clickedPickup.x, clickedPickup.y, '🏃', 16);
-      return; // เดินไปเก็บของแล้วจบการทำงานคลิกนี้
-    }
+function onPointerMove(ev) {
+  if (!isPointerDown) return;
+  const rect = canvas.getBoundingClientRect();
+  const sx = GAME_WIDTH / rect.width;
+  const mx = (ev.clientX - rect.left) * sx, my = (ev.clientY - rect.top) * sx;
 
-    // ตรวจสอบว่าคลิกโดน Enemy หรือไม่
-    const clickedEnemy = enemies.find(e => !e.dead && Math.sqrt((mx - e.x)**2 + (my - e.y)**2) < 30);
-    if (clickedEnemy) {
-      heroEntity.targetX = clickedEnemy.x;
-      heroEntity.targetY = clickedEnemy.y;
-      addPart(clickedEnemy.x, clickedEnemy.y, '⚔️', 16);
-      return; // เดินไปโจมตีศัตรูแล้วจบการทำงานคลิกนี้
-    }
-
-    // ถ้าไม่โดนอะไรเลย ให้เดินไปยังจุดที่คลิก
+  if (isDraggingHero && heroEntity && !heroEntity.dead) {
     heroEntity.targetX = mx;
     heroEntity.targetY = my;
-    // heroEntity.selected = false; // นำออก: เพื่อให้เลือกค้างไว้สำหรับการสั่งเดินต่อเนื่อง
-    addPart(mx, my, '📍', 16);
-    return;
   }
+}
 
-  // 3. จัดการป้อมที่มีอยู่เดิม (อัพเกรด/เลือกดูข้อมูล)
-  const existing=towers.find(t=>{
+function onPointerUp(ev) {
+  if (gameOver || won) return;
+  isPointerDown = false;
+  const rect = canvas.getBoundingClientRect();
+  const sx = GAME_WIDTH / rect.width;
+  const mx = (ev.clientX - rect.left) * sx, my = (ev.clientY - rect.top) * sx;
+
+  if (isDraggingHero) {
+    isDraggingHero = false;
+    if (heroEntity) {
+      heroEntity.selected = false;
+      heroEntity.targetX = mx;
+      heroEntity.targetY = my;
+      addPart(mx, my, '📍', 16);
+    }
+  } else {
+    // ถ้าไม่ได้ลาก แต่เป็นการจิ้มธรรมดาที่พื้น (เคลื่อนที่ไม่เกิน 10px) ให้ถือว่าเป็นการสร้าง/เลือกป้อม
+    const distSq = (mx - dragStartX) ** 2 + (my - dragStartY) ** 2;
+    if (distSq < 100) {
+      handleCanvasClick(mx, my);
+    }
+  }
+}
+
+function handleCanvasClick(mx, my) {
+  const c = Math.floor(mx / CS), r = Math.floor(my / CS);
+
+  // 1. จัดการป้อมที่มีอยู่เดิม (อัพเกรด/เลือกดูข้อมูล)
+  const existing = towers.find(t => {
     const tw = TOWER_TYPES[t.type].w || 1;
     const th = TOWER_TYPES[t.type].h || 1;
     return c >= t.c && c < t.c + tw && r >= t.r && r < t.r + th;
@@ -306,36 +322,35 @@ function onCanvasClick(ev){
   }
   closeUpgrade();
   
-  // 4. วางป้อมใหม่ (เฉพาะเมื่อไม่ได้เลือก Hero อยู่)
-  const td=TOWER_TYPES[selectedType];
-  if(!td) { return; }
+  // 2. วางป้อมใหม่
+  const td = TOWER_TYPES[selectedType];
+  if (!td) { return; }
   const tw = td.w || 1, th = td.h || 1;
   
   let canBuild = true;
-  for(let i=0; i<tw; i++){
-    for(let j=0; j<th; j++){
-      if(c+i >= COLS || r+j >= ROWS || isPath(c+i, r+j) || hasTower(c+i, r+j)){
+  for (let i = 0; i < tw; i++) {
+    for (let j = 0; j < th; j++) {
+      if (c + i >= COLS || r + j >= ROWS || isPath(c + i, r + j) || hasTower(c + i, r + j)) {
         canBuild = false; break;
       }
     }
   }
-  if(!canBuild) return;
+  if (!canBuild) return;
   
-  const px = c*CS + (tw*CS)/2;
-  const py = r*CS + (th*CS)/2;
+  const px = c * CS + (tw * CS) / 2;
+  const py = r * CS + (th * CS) / 2;
 
-  if(gold<td.cost){showNotEnoughGold(td, mx, my);return;}
+  if (gold < td.cost) { showNotEnoughGold(td, mx, my); return; }
 
   if (isMultiplayer && !isHost) {
     sendNetData('REQUEST_BUILD', { c, r, t: selectedType });
-    // แสดงผลทันที (Prediction)
     playSfx('build');
     addPart(px, py, '🏗', 22);
     return;
   }
 
-  gold-=td.cost; updateHUD();
-  towers.push({c,r,x:px,y:py,type:selectedType,level:0,cooldown:0,aimAngle:undefined,recoilAmt:0});
+  gold -= td.cost; updateHUD();
+  towers.push({ c, r, x: px, y: py, type: selectedType, level: 0, cooldown: 0, aimAngle: undefined, recoilAmt: 0 });
   playSfx('build');
   addPart(px, py, '🏗', 22);
   if (isMultiplayer && isHost) sendNetData('BUILD', { c, r, t: selectedType });
@@ -617,43 +632,53 @@ function gotoResult(success, syncedDrops = null){
   const stg = STAGES[stageIdx % STAGES.length];
   const lvBonus = Math.floor((currentLevel-1)/5)*10;
   const coinsEarned = success ? (30 + stageIdx*15 + wave*5 + lvBonus) : 0;
+  
+  // รวมเพชรที่ได้รับจากการดรอปและโบนัสเคลียร์ด่านเข้าด้วยกัน
+  const totalGemsEarned = coinsEarned + (typeof sessionGems !== 'undefined' ? sessionGems : 0);
   saveData.gems += coinsEarned;
   let itemDropMessage = '<div style="color:var(--muted); font-size:12px;">- ไม่มีไอเทมดรอป -</div>';
   
+  let newlyGeneratedDrops = [];
   if(success){
-    let droppedTypes = [];
     saveData.invSeen = false; 
     
     if (isMultiplayer && !isHost && syncedDrops) {
-      droppedTypes = syncedDrops;
+      newlyGeneratedDrops = syncedDrops;
     } else {
       const maxT = TOWER_TYPES.length;
-      droppedTypes.push(Math.floor(Math.random() * maxT));
-      if(Math.random() < 0.5) droppedTypes.push(Math.floor(Math.random() * maxT));
-      if(Math.random() < 0.25) droppedTypes.push(Math.floor(Math.random() * maxT));
-      if (isMultiplayer && isHost) sendNetData('STAGE_CLEAR', { drops: droppedTypes });
+      newlyGeneratedDrops.push(Math.floor(Math.random() * maxT));
+      if(Math.random() < 0.5) newlyGeneratedDrops.push(Math.floor(Math.random() * maxT));
+      if(Math.random() < 0.25) newlyGeneratedDrops.push(Math.floor(Math.random() * maxT));
+      if (isMultiplayer && isHost) sendNetData('STAGE_CLEAR', { drops: newlyGeneratedDrops });
     }
 
-    let droppedItems = [];
-    droppedTypes.forEach(t => {
+    newlyGeneratedDrops.forEach(t => {
       saveData.inventory.push({type: t, tier: 1});
-      droppedItems.push(TOWER_TYPES[t]);
     });
-
-    if(droppedItems.length > 0) {
-      const droppedHtml = droppedItems.map(td => `<span style="display:inline-block; background:rgba(255,255,255,0.15); padding:4px 8px; border-radius:6px; margin:2px; font-size:12px; border:1px solid rgba(255,255,255,0.1);">${td.emoji} ${td.name} <span style="color:var(--muted);font-size:10px;">(T1)</span></span>`).join('');
-      itemDropMessage = `<div style="margin-bottom:6px; font-weight:bold; color:var(--gold); font-size:14px;">🎁 ได้รับชิ้นส่วนอาวุธ:</div>${droppedHtml}`;
-    }
 
     checkAndMergeItems();
 
     saveData.currentPath = null;
     saveData.infinityLevel = currentLevel + 1;
     if(currentLevel > saveData.bestLevel) saveData.bestLevel = currentLevel;
-    
-    // ปิดการบังคับข้ามหน้าจออัตโนมัติ (setTimeout/return) เพื่อให้ผู้เล่นได้ชื่นชมหน้าสรุปผลและไอเทมดรอปก่อนเสมอ
   }
   
+  // รวมไอเทมทั้งหมดที่ได้รับ ทั้งจากการเก็บในด่าน (sessionItems) และโบนัสจบด่าน
+  let allDisplayedItems = [];
+  if (typeof sessionItems !== 'undefined') {
+    allDisplayedItems = allDisplayedItems.concat(sessionItems);
+  }
+  allDisplayedItems = allDisplayedItems.concat(newlyGeneratedDrops);
+
+  if(allDisplayedItems.length > 0) {
+    const droppedHtml = allDisplayedItems.map(t => {
+      const td = TOWER_TYPES[t];
+      return `<span style="display:inline-block; background:rgba(255,255,255,0.15); padding:4px 8px; border-radius:6px; margin:2px; font-size:12px; border:1px solid rgba(255,255,255,0.1);">${td.emoji} ${td.name} <span style="color:var(--muted);font-size:10px;">(T1)</span></span>`;
+    }).join('');
+    itemDropMessage = `<div style="margin-bottom:6px; font-weight:bold; color:var(--gold); font-size:14px;">🎁 ได้รับชิ้นส่วนอาวุธรวม:</div>${droppedHtml}`;
+    saveData.invSeen = false; // แปะป้ายว่ามีของใหม่เสมอถ้ามีของดรอป
+  }
+
   if (isMultiplayer && isHost && !success) sendNetData('STAGE_FAILED', {});
   saveGame();
 
@@ -665,7 +690,7 @@ function gotoResult(success, syncedDrops = null){
   document.getElementById('res-stage').innerHTML = `${stg.emoji} ${stg.name} — คลื่น ${wave}/10<br><div style="margin-top:6px; font-size:14px;">${lvTxt}</div>`;
 
   document.getElementById('res-gold').innerHTML = `<span style="color:var(--gold); font-weight:bold;">💰 ${gold}g</span>`;
-  document.getElementById('res-coins').innerHTML = `<span style="color:#64B5F6; font-weight:bold; text-shadow:0 0 10px rgba(100,181,246,0.4);">💎 +${coinsEarned}</span>`;
+  document.getElementById('res-coins').innerHTML = `<span style="color:#64B5F6; font-weight:bold; text-shadow:0 0 10px rgba(100,181,246,0.4);">💎 +${totalGemsEarned}</span>`;
 
   const h=HEROES[saveData.equippedHero], lv=saveData.heroLevels[saveData.equippedHero];
   const bonus=getHeroStats(h,lv);

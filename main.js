@@ -24,9 +24,15 @@ let paths=[];
 let animFrame=null, lastTime=0, waveTimer=0, waveQueue=[];
 let heroShieldCount=0;
 let syncTimer = 0; // เพิ่มตัวจับเวลาสำหรับการซิงค์
+let sessionGems = 0;
+let sessionItems = [];
 
 // ===== CANVAS LISTENER =====
-document.getElementById('game-canvas').addEventListener('click',onCanvasClick);
+const _gameCanvas = document.getElementById('game-canvas');
+_gameCanvas.addEventListener('pointerdown', onPointerDown);
+_gameCanvas.addEventListener('pointermove', onPointerMove);
+_gameCanvas.addEventListener('pointerup', onPointerUp);
+_gameCanvas.addEventListener('pointercancel', onPointerUp);
 
 // ===== BOOT =====
 loadGame();
