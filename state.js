@@ -9,7 +9,8 @@ let saveData = {
   selectedTowers: [0],
   towerLevels: [0,0,0,0,0,0,0,0,0], // เพิ่มการเก็บเลเวลป้อมถาวร 9 ชนิด
   invSeen: false,
-  isMuted: false
+  isMuted: false,
+  autoNextEnabled: false
 };
 function saveGame(){
   try{ localStorage.setItem('td_save', JSON.stringify(saveData)); showToast('💾 บันทึกอัตโนมัติ', 'var(--green)'); }catch(e){}

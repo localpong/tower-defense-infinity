@@ -38,6 +38,12 @@ function getEnemySprite(type, isBoss) {
   ctx2.fillStyle = gradient; ctx2.fill();
   ctx2.strokeStyle = endColor; ctx2.lineWidth = 1.5; ctx2.stroke();
 
+  // Specular Highlight (เพิ่มเงาสะท้อนแสงให้ดูเป็นทรงกลม 3D แบบเงางาม)
+  ctx2.beginPath();
+  ctx2.ellipse(center - r2*0.25, center - r2*0.35, r2*0.4, r2*0.15, Math.PI/8, 0, Math.PI * 2);
+  ctx2.fillStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx2.fill();
+
   enemySpriteCache[key] = { img: c, r2: r2, center: center, size: size };
   return enemySpriteCache[key];
 }
@@ -413,7 +419,16 @@ function drawEnemy(e){
   const spriteData = getEnemySprite(e.type, e.isBoss);
   ctx.drawImage(spriteData.img, -spriteData.center, -spriteData.center, spriteData.size, spriteData.size);
 
-  if (e.slowTimer > 0) { ctx.fillStyle = 'rgba(100,181,246,0.35)'; ctx.beginPath(); ctx.arc(0, 0, r2 + 2, 0, Math.PI * 2); ctx.fill(); }
+  // เอฟเฟกต์น้ำแข็ง (เมื่อโดน Slow) ทำให้ดูมีขอบชัดเจนและสวยงามขึ้น
+  if (e.slowTimer > 0) { 
+    ctx.fillStyle = 'rgba(100,181,246,0.3)'; 
+    ctx.strokeStyle = 'rgba(100,181,246,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); 
+    ctx.arc(0, 0, r2 + 3, 0, Math.PI * 2); 
+    ctx.fill(); 
+    ctx.stroke();
+  }
   
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -422,11 +437,36 @@ function drawEnemy(e){
   ctx.fillText(enemyEmoji, 0, 0);
   ctx.restore();
 
-  // แถบเลือด (วาดแยกไม่ให้หมุนหรือกระโดดตามตัวละครเพื่อให้ดูง่าย)
-  const bw=CS*1.1,bh=3,bx=e.x-bw/2,by=e.y-r2-12;
-  ctx.fillStyle='#30363d';ctx.fillRect(bx,by,bw,bh);
-  ctx.fillStyle=e.hp/e.maxHp>.5?'#3fb950':'#ff6b6b';ctx.fillRect(bx,by,bw*(e.hp/e.maxHp),bh);
-  if(e.isBoss){ctx.font='bold 8px sans-serif';ctx.fillStyle='#ff4444';ctx.textAlign='center';ctx.fillText('BOSS',e.x,by-4);}
+  // UI หลอดเลือดที่ปรับปรุงใหม่ให้ดูโมเดิร์น
+  const hpRatio = Math.max(0, Math.min(1, e.hp / e.maxHp));
+  const bw = e.isBoss ? CS * 1.5 : CS * 1.1; // กว้างขึ้นสำหรับบอส
+  const bh = e.isBoss ? 4.5 : 3.5;
+  const bx = e.x - bw / 2;
+  const by = e.y - r2 - (e.isBoss ? 18 : 12);
+
+  // พื้นหลังหลอดเลือดแบบโปร่งแสงและมุมโค้ง
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 2); else ctx.fillRect(bx, by, bw, bh); ctx.fill();
+
+  // สีหลอดเลือดเปลี่ยนสถานะ (เขียว -> ส้ม -> แดง)
+  let hpColor = '#3fb950';
+  if (hpRatio <= 0.25) hpColor = '#ff4444';
+  else if (hpRatio <= 0.6) hpColor = '#f0a500';
+
+  ctx.fillStyle = hpColor;
+  ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(bx, by, bw * hpRatio, bh, 2); else ctx.fillRect(bx, by, bw * hpRatio, bh); ctx.fill();
+
+  // ป้ายบอกบอส (Boss Badge) ที่ออกแบบเป็นกล่องข้อความดูพรีเมียมขึ้น
+  if (e.isBoss) {
+    const bdw = 32, bdh = 12, bdx = e.x - bdw / 2, bdy = by - bdh - 4;
+    ctx.fillStyle = '#ff4444';
+    ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(bdx, bdy, bdw, bdh, 4); else ctx.fillRect(bdx, bdy, bdw, bdh); ctx.fill();
+    ctx.font = 'bold 8px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('BOSS', e.x, bdy + bdh / 2 + 1);
+  }
 }
 
 function drawBullet(b){

@@ -596,7 +596,7 @@ function gotoResult(success, syncedDrops = null){
   const lvBonus = Math.floor((currentLevel-1)/5)*10;
   const coinsEarned = success ? (30 + stageIdx*15 + wave*5 + lvBonus) : 0;
   saveData.gems += coinsEarned;
-  let itemDropMessage = '- ไม่มี -';
+  let itemDropMessage = '<div style="color:var(--muted); font-size:12px;">- ไม่มีไอเทมดรอป -</div>';
   
   if(success){
     let droppedTypes = [];
@@ -611,48 +611,128 @@ function gotoResult(success, syncedDrops = null){
       if (isMultiplayer && isHost) sendNetData('STAGE_CLEAR', { drops: droppedTypes });
     }
 
-    let droppedNames = [];
+    let droppedItems = [];
     droppedTypes.forEach(t => {
       saveData.inventory.push({type: t, tier: 1});
-      droppedNames.push(TOWER_TYPES[t].name);
+      droppedItems.push(TOWER_TYPES[t]);
     });
 
-    itemDropMessage = "🎁 ได้รับ: " + droppedNames.map(n => n + " (T1)").join(", ");
+    if(droppedItems.length > 0) {
+      const droppedHtml = droppedItems.map(td => `<span style="display:inline-block; background:rgba(255,255,255,0.15); padding:4px 8px; border-radius:6px; margin:2px; font-size:12px; border:1px solid rgba(255,255,255,0.1);">${td.emoji} ${td.name} <span style="color:var(--muted);font-size:10px;">(T1)</span></span>`).join('');
+      itemDropMessage = `<div style="margin-bottom:6px; font-weight:bold; color:var(--gold); font-size:14px;">🎁 ได้รับชิ้นส่วนอาวุธ:</div>${droppedHtml}`;
+    }
+
     checkAndMergeItems();
 
     saveData.currentPath = null;
     saveData.infinityLevel = currentLevel + 1;
     if(currentLevel > saveData.bestLevel) saveData.bestLevel = currentLevel;
     
-    saveGame();
-    showToast(`🎉 เลเวล ${currentLevel} สำเร็จ! +${coinsEarned} 💎 ${droppedNames.length > 0 ? '🎁' : ''}`, 'var(--green)');
-    setTimeout(continueInfinity, 1500);
-    return;
+    // ปิดการบังคับข้ามหน้าจออัตโนมัติ (setTimeout/return) เพื่อให้ผู้เล่นได้ชื่นชมหน้าสรุปผลและไอเทมดรอปก่อนเสมอ
   }
   
   if (isMultiplayer && isHost && !success) sendNetData('STAGE_FAILED', {});
   saveGame();
-  document.getElementById('res-title').textContent = success ? '🎉 ชนะ!' : '💀 แพ้แล้ว';
-  const lvTxt = success ? `⭐ Level ${currentLevel} → ${currentLevel+1}` : `⭐ Level ${currentLevel} | สถิติ: Lv.${saveData.bestLevel}`;
-  document.getElementById('res-stage').textContent = `${stg.emoji} ${stg.name} — คลื่น ${wave}/10 | ${lvTxt}`;
-  document.getElementById('res-gold').textContent = gold+'g';
-  document.getElementById('res-coins').textContent = '+'+coinsEarned;
+
+  document.getElementById('res-title').innerHTML = success 
+    ? '<div style="color:var(--green); text-shadow:0 0 20px rgba(63,185,80,0.5); font-size:1.2em;">🎉 ชนะด่าน!</div>' 
+    : '<div style="color:var(--red); text-shadow:0 0 20px rgba(255,107,107,0.5); font-size:1.2em;">💀 พ่ายแพ้</div>';
+
+  const lvTxt = success ? `⭐ Level ${currentLevel} <span style="color:var(--green)">→ ${currentLevel+1}</span>` : `⭐ Level ${currentLevel} <span style="color:var(--muted)">| สถิติ: Lv.${saveData.bestLevel}</span>`;
+  document.getElementById('res-stage').innerHTML = `${stg.emoji} ${stg.name} — คลื่น ${wave}/10<br><div style="margin-top:6px; font-size:14px;">${lvTxt}</div>`;
+
+  document.getElementById('res-gold').innerHTML = `<span style="color:var(--gold); font-weight:bold;">💰 ${gold}g</span>`;
+  document.getElementById('res-coins').innerHTML = `<span style="color:#64B5F6; font-weight:bold; text-shadow:0 0 10px rgba(100,181,246,0.4);">💎 +${coinsEarned}</span>`;
+
   const h=HEROES[saveData.equippedHero], lv=saveData.heroLevels[saveData.equippedHero];
   const bonus=getHeroStats(h,lv);
-  document.getElementById('item-drop-content').textContent = itemDropMessage;
-  document.getElementById('rhb-content').innerHTML = `${h.emoji} ${h.name} Lv.${lv+1} — ATK +${bonus.atkBonus}% | ระยะ +${bonus.rangeBonus} | ทอง +${bonus.goldBonus}% | HP +${bonus.hpBonus}`;
+  document.getElementById('item-drop-content').innerHTML = itemDropMessage;
+  
+  document.getElementById('rhb-content').innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:center; gap:16px; background:rgba(0,0,0,0.3); padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); margin-top:8px;">
+      <div style="font-size:40px; filter:drop-shadow(0 0 15px ${h.color || 'var(--purple)'});">${h.emoji}</div>
+      <div style="text-align:left; line-height:1.4;">
+        <div style="font-weight:bold; font-size:16px; color:${h.color || 'var(--purple)'};">${h.name} <span style="color:#fff;font-size:11px;background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;">Lv.${lv+1}</span></div>
+        <div style="font-size:12px; color:var(--muted); margin-top:4px; display:grid; grid-template-columns:auto auto; column-gap:12px; row-gap:2px;">
+          <span>⚔️ +${bonus.atkBonus}%</span>
+          <span>🎯 +${bonus.rangeBonus}</span>
+          <span>💰 +${bonus.goldBonus}%</span>
+          <span>❤️ +${bonus.hpBonus}</span>
+        </div>
+      </div>
+    </div>`;
+
   const btns=document.getElementById('res-btns');
+  btns.style.display = 'flex';
+  btns.style.gap = '10px';
+  btns.style.flexWrap = 'wrap';
   
   if(success){
-    btns.innerHTML=`<button class="res-btn secondary" onclick="gotoHero()">🦸 อัพเกรด Hero</button><button class="res-btn primary" onclick="continueInfinity()">⭐ ด่านถัดไป Lv.${currentLevel+1}</button>`;
+    let autoNextHtml = '';
+    if (!isMultiplayer || isHost) {
+      autoNextHtml = `
+        <div style="width:100%; text-align:center; margin-top:5px;">
+          <label style="color:var(--muted); font-size:12px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+            <input type="checkbox" id="auto-next-checkbox" ${saveData.autoNextEnabled ? 'checked' : ''} onchange="toggleAutoNext(this.checked)" style="cursor:pointer; width:14px; height:14px;">
+            <span>⏭️ ไปด่านต่อไปอัตโนมัติ (Auto Next)</span>
+          </label>
+        </div>
+      `;
+    } else {
+      autoNextHtml = `<div style="width:100%; text-align:center; margin-top:5px; font-size:12px; color:var(--muted);">⏳ รอ Host เริ่มด่านถัดไป...</div>`;
+    }
+
+    btns.innerHTML=`<button class="res-btn secondary" style="flex:1;" onclick="gotoHero()">🦸 อัพเกรด Hero</button><button id="btn-next-stage" class="res-btn primary" style="flex:1.5; font-weight:bold; box-shadow:0 0 15px rgba(63,185,80,0.4);" onclick="continueInfinity()">⭐ ถัดไป Lv.${currentLevel+1}</button>${autoNextHtml}`;
+
+    if (window._autoNextTimer) clearInterval(window._autoNextTimer);
+    if (saveData.autoNextEnabled && (!isMultiplayer || isHost)) {
+      let countdown = 3;
+      const btnNext = document.getElementById('btn-next-stage');
+      if (btnNext) btnNext.innerHTML = `⭐ ถัดไป Lv.${currentLevel+1} (${countdown}s)`;
+      window._autoNextTimer = setInterval(() => {
+        countdown--;
+        const btn = document.getElementById('btn-next-stage');
+        if (countdown > 0 && btn) { 
+          btn.innerHTML = `⭐ ถัดไป Lv.${currentLevel+1} (${countdown}s)`; 
+        } else {
+          clearInterval(window._autoNextTimer);
+          if (document.getElementById('result-screen').classList.contains('active')) continueInfinity();
+        }
+      }, 1000);
+    }
   } else {
-    btns.innerHTML=`<button class="res-btn secondary" onclick="gotoHero()">🦸 อัพเกรด Hero</button><button class="res-btn primary" onclick="tryAgain()">🔄 ลองใหม่</button>`;
+    btns.innerHTML=`<button class="res-btn secondary" style="flex:1;" onclick="gotoHero()">🦸 อัพเกรด Hero</button><button class="res-btn primary" style="flex:1.5; font-weight:bold;" onclick="tryAgain()">🔄 ลองใหม่</button>`;
   }
   showScreen('result-screen');
 }
 
+function toggleAutoNext(isChecked) {
+  saveData.autoNextEnabled = isChecked;
+  saveGame();
+  if (window._autoNextTimer) clearInterval(window._autoNextTimer);
+  const btnNext = document.getElementById('btn-next-stage');
+  if (!isChecked) {
+    if (btnNext) btnNext.innerHTML = `⭐ ถัดไป Lv.${currentLevel+1}`;
+  } else {
+    if (!isMultiplayer || isHost) {
+      let countdown = 3;
+      if (btnNext) btnNext.innerHTML = `⭐ ถัดไป Lv.${currentLevel+1} (${countdown}s)`;
+      window._autoNextTimer = setInterval(() => {
+        countdown--;
+        const btn = document.getElementById('btn-next-stage');
+        if (countdown > 0 && btn) { btn.innerHTML = `⭐ ถัดไป Lv.${currentLevel+1} (${countdown}s)`; } 
+        else {
+          clearInterval(window._autoNextTimer);
+          if (document.getElementById('result-screen').classList.contains('active')) continueInfinity();
+        }
+      }, 1000);
+    }
+  }
+}
+
 function continueInfinity(){
   playSfx('click');
+  if (window._autoNextTimer) clearInterval(window._autoNextTimer);
   if (isMultiplayer) {
     if (isHost) {
       currentLevel = saveData.infinityLevel;
@@ -679,6 +759,7 @@ function continueInfinity(){
 
 function tryAgain(){
   playSfx('click');
+  if (window._autoNextTimer) clearInterval(window._autoNextTimer);
   if (isMultiplayer) {
     if (isHost) {
       currentLevel = saveData.infinityLevel;
