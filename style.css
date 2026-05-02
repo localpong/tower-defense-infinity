@@ -391,7 +391,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
   min-width:65px; padding:4px 2px; border-radius:12px; border:1px solid var(--border);
   background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
   color:var(--text);cursor:pointer;font-size:16px;display:flex;flex-direction:column;align-items:center;
-  gap:1px;transition:all 0.2s;
+  gap:1px;transition:all 0.2s; touch-action: pan-x;
 }
 .tower-btn .tn{font-size:8px;color:var(--muted);}
 .tower-btn .tc{font-size:9px;color:var(--gold);font-weight:700;}

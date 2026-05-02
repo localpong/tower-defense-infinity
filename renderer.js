@@ -105,6 +105,57 @@ function render(){
   bullets.forEach(b=>drawBullet(b));
   heroBullets.forEach(b=>drawHeroBullet(b));
   
+  // Ghost วาดเงาและรัศมีของป้อมขณะที่ผู้เล่นกำลังลากจาก Toolbar
+  if (typeof draggingTowerType !== 'undefined' && draggingTowerType !== null) {
+    const rect = canvas.getBoundingClientRect();
+    const sx = GAME_WIDTH / rect.width;
+    const mx = (dragTowerX - rect.left) * sx;
+    const my = (dragTowerY - rect.top) * sx;
+    
+    if (mx >= 0 && mx <= GAME_WIDTH && my >= 0 && my <= GAME_HEIGHT) {
+      const td = TOWER_TYPES[draggingTowerType];
+      const tw = td.w || 1;
+      const th = td.h || 1;
+      const c = Math.floor(mx / CS);
+      const r = Math.floor(my / CS);
+      
+      let canBuild = true;
+      for(let i=0; i<tw; i++){
+        for(let j=0; j<th; j++){
+          if(c+i < 0 || c+i >= COLS || r+j < 0 || r+j >= ROWS || isPath(c+i, r+j) || hasTower(c+i, r+j)) {
+            canBuild = false; break;
+          }
+        }
+      }
+      
+      const px = c * CS + (tw * CS) / 2;
+      const py = r * CS + (th * CS) / 2;
+      
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      
+      const h=HEROES[saveData.equippedHero], stats=getHeroStats(h,saveData.heroLevels[saveData.equippedHero]);
+      const range = td.range + (stats.rangeBonus||0);
+      ctx.beginPath(); ctx.arc(px, py, range, 0, Math.PI * 2);
+      ctx.fillStyle = canBuild ? 'rgba(255,255,255,0.1)' : 'rgba(255,0,0,0.1)';
+      ctx.fill();
+      ctx.strokeStyle = canBuild ? 'rgba(255,255,255,0.3)' : 'rgba(255,0,0,0.3)';
+      ctx.stroke();
+
+      const scaleM = Math.min(tw, th);
+      const r2 = CS * 0.38 * (1 + (scaleM - 1) * 0.6);
+      
+      ctx.translate(px, py);
+      ctx.beginPath(); ctx.arc(0,0,r2+3,0,Math.PI*2); ctx.fillStyle=td.color+'40'; ctx.fill();
+      ctx.beginPath(); ctx.arc(0,0,r2,0,Math.PI*2); ctx.fillStyle='#1e2a3a'; ctx.fill();
+      ctx.strokeStyle=td.color; ctx.lineWidth=2; ctx.stroke();
+      
+      const fontSize = CS * 0.36 * (1 + (scaleM - 1) * 0.5);
+      ctx.font=`${fontSize}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(td.emoji,0,0);
+      ctx.restore();
+    }
+  }
+
   // Draw Enemy Bullets
   enemyBullets.forEach(b => {
     ctx.beginPath();

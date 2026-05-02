@@ -193,7 +193,7 @@ function renderGameToolbar() {
     const btn = document.createElement('button');
     btn.className = 'tower-btn';
     btn.id = `tbtn-${tIdx}`;
-    btn.onclick = () => selectTower(tIdx);
+    btn.onpointerdown = (ev) => startDragTower(ev, tIdx);
     btn.innerHTML = `${t.emoji}<span class="tn">${t.name}</span><span class="tc">${t.cost}g</span>`;
     container.appendChild(btn);
   });
@@ -354,8 +354,10 @@ function handleCanvasClick(mx, my) {
   playSfx('build');
   addPart(px, py, '🏗', 22);
   if (isMultiplayer && isHost) sendNetData('BUILD', { c, r, t: selectedType });
+  closeSelType(); // เมื่อสร้างป้อมเสร็จให้เคลียร์การเลือกทันทีเพื่อป้องกันการเผลอกดซ้ำ
 }
 
+/* ฟังก์ชันเก่า ยกเลิกการใช้งานเพราะนำไปรวมกับลอจิก startDragTower แล้ว 
 function selectTower(i){
   playSfx('click');
   
@@ -376,10 +378,83 @@ function selectTower(i){
   selectedType=i; selectedTower=null; closeUpgrade();
   const btn = document.getElementById('tbtn-'+i);
   if(btn) btn.classList.add('selected');
+} */
+
+let dragTowerStartX = 0;
+let dragTowerStartY = 0;
+
+function startDragTower(ev, tIdx) {
+  playSfx('click');
+  if (heroEntity) heroEntity.selected = false;
+  
+  if (selectedType === tIdx) {
+    closeSelType();
+    return;
+  }
+  
+  selectedType = tIdx;
+  draggingTowerType = tIdx;
+  dragTowerX = ev.clientX;
+  dragTowerY = ev.clientY;
+  dragTowerStartX = ev.clientX;
+  dragTowerStartY = ev.clientY;
+  selectedTower = null; 
+  closeUpgrade();
+  
+  TOWER_TYPES.forEach((_, j) => {
+    const b = document.getElementById('tbtn-'+j);
+    if(b) b.classList.remove('selected');
+  });
+  const btn = document.getElementById('tbtn-'+tIdx);
+  if(btn) btn.classList.add('selected');
+  
+  document.addEventListener('pointermove', onDragTowerMove);
+  document.addEventListener('pointerup', onDragTowerUp);
+  document.addEventListener('pointercancel', onDragTowerUp);
+}
+
+function onDragTowerMove(ev) {
+  if (draggingTowerType === null) return;
+  dragTowerX = ev.clientX;
+  dragTowerY = ev.clientY;
+}
+
+function onDragTowerUp(ev) {
+  if (draggingTowerType === null) return;
+  
+  if (ev.type === 'pointercancel') {
+    if (selectedType !== null) closeSelType();
+    draggingTowerType = null;
+    document.removeEventListener('pointermove', onDragTowerMove);
+    document.removeEventListener('pointerup', onDragTowerUp);
+    document.removeEventListener('pointercancel', onDragTowerUp);
+    return;
+  }
+  
+  const distSq = (ev.clientX - dragTowerStartX) ** 2 + (ev.clientY - dragTowerStartY) ** 2;
+  const isDrag = distSq > 100; // ตรวจสอบว่าเป็นการลาก ไม่ใช่แค่จิ้มธรรมดา
+  
+  const rect = canvas.getBoundingClientRect();
+  const sx = GAME_WIDTH / rect.width;
+  const mx = (ev.clientX - rect.left) * sx;
+  const my = (ev.clientY - rect.top) * sx;
+
+  if (isDrag) {
+    if (my >= 0 && my <= GAME_HEIGHT && mx >= 0 && mx <= GAME_WIDTH) {
+      handleCanvasClick(mx, my); // พยายามสร้างป้อมถ้าลากมาปล่อยในจอ
+    }
+    if (selectedType !== null) closeSelType(); // ยกเลิกการเลือกเมื่อปล่อยนิ้ว
+  }
+  
+  draggingTowerType = null;
+  document.removeEventListener('pointermove', onDragTowerMove);
+  document.removeEventListener('pointerup', onDragTowerUp);
+  document.removeEventListener('pointercancel', onDragTowerUp);
 }
 
 function closeSelType(){
   selectedType=null;
+  draggingTowerType=null;
   TOWER_TYPES.forEach((_, j) => {
     const btn = document.getElementById('tbtn-'+j);
     if(btn) btn.classList.remove('selected');

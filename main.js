@@ -16,6 +16,7 @@ let speedMult, speedMode;
 let stageIdx=0, currentLevel=1, enemyBullets = [], heroBullets = [];
 let shakeAmt=0, heroEntity=null;
 let bgAnimTime=0;
+let draggingTowerType = null, dragTowerX = 0, dragTowerY = 0;
 let weatherParticles=[];
 let autoWaveEnabled=false;
 let autoUpgradeEnabled=false;
