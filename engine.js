@@ -93,6 +93,11 @@ function updateHero(dt) {
     heroEntity.hp = Math.min(heroEntity.maxHp, heroEntity.hp + regenRate * dt);
   }
 
+  // Mana Regeneration Logic (ฟื้นฟูมานาอัตโนมัติ 5 หน่วยต่อวินาที)
+  if (mana < maxMana) {
+    mana = Math.min(maxMana, mana + 5 * dt);
+  }
+
   // Movement: Move towards target location
   const dx = heroEntity.targetX - heroEntity.x;
   const dy = heroEntity.targetY - heroEntity.y;
@@ -357,10 +362,14 @@ function getHeroStats(h,lv){
 }
 
 function useHeroSkill(){
-  if(enemies.length===0)return;
   const h=HEROES[saveData.equippedHero], lv=saveData.heroLevels[saveData.equippedHero];
   const cost = h.skill.manaCost;
   if(mana < cost) return;
+
+  if(enemies.length===0){
+    if(typeof showToast === 'function') showToast('⚠️ ต้องมีศัตรูในฉากก่อนถึงจะใช้ได้!', 'var(--gold)');
+    return;
+  }
 
   if (isMultiplayer && !isHost) {
     sendNetData('REQUEST_USE_SKILL', { heroId: h.id, cost: cost });
@@ -947,8 +956,9 @@ function dealDmg(e,dmg,isSkill=false,isHero=false,sourceType=null){
     else if(Math.random() < 0.02) {
       pickups.push({ x: e.x, y: e.y, life: 15, offsetY: 0, type: 'item', emoji: '🎁' });
     } 
-    // ดรอปขวดมานา 🧪 (โอกาส 3%)
-    else if(Math.random() < 0.03) {
+    
+    // ดรอปขวดมานา 🧪 (การันตีดรอปเฉพาะเมื่อฆ่าบอส)
+    if(e.isBoss) {
       pickups.push({ x: e.x, y: e.y, life: 10, offsetY: 0, type: 'mana', emoji: '🧪' });
     }
 
