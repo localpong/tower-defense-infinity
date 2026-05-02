@@ -175,6 +175,10 @@ function gotoGame(remoteHeroInitialData = null){ // เพิ่มพารา�
 
 // Function for Android to call to handle back button
 function goBackInApp() {
+  if (document.getElementById('game-screen').classList.contains('active')) {
+    if (typeof pauseGame === 'function') pauseGame();
+    return true; // ป้องกันแอปปิดตัวและหยุดเกมให้
+  }
   if (typeof screenHistory !== 'undefined' && screenHistory.length > 1) {
     screenHistory.pop(); // Remove current screen
     const prevScreenId = screenHistory[screenHistory.length - 1];

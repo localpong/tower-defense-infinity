@@ -441,7 +441,7 @@ function drawEnemy(e){
 
   // ชุดสีตามประเภทศัตรู
   const baseColors = ['#e53935', '#fb8c00', '#43a047', '#546e7a'];
-  const enemyColor = e.isBoss ? '#ff1111' : (baseColors[e.type] || '#fff');
+  const enemyColor = e.isBoss ? '#ff1111' : baseColors[e.type % 4];
 
   // 1. วาดเงาที่พื้น (วาดก่อนให้ติดพื้น ไม่โยกตามตัว)
   if (!e.isBurrowed) {

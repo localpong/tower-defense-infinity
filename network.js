@@ -409,12 +409,19 @@ function handleNetData(type, p) {
       gold = p.gold; hp = p.hp; mana = p.mana; wave = p.wave;
       waveRunning = p.waveRunning;
       speedMode = p.speedMode; speedMult = p.speedMult;
-      autoWaveEnabled = p.autoWaveEnabled;
+      isPaused = p.isPaused; waveCountdown = p.waveCountdown;
       autoUpgradeEnabled = p.autoUpgradeEnabled;
       updateHUD(); updateSpeedUI();
-      updateAutoWaveUI();
       updateAutoUpgradeUI();
-      if (!waveRunning) document.getElementById('wave-btn').disabled = false;
+      if (!waveRunning) {
+        const btn = document.getElementById('wave-btn');
+        btn.disabled = false;
+        if (waveCountdown > 0) {
+          btn.innerHTML = `<span style="font-size:16px;">${Math.ceil(waveCountdown)}s</span><br><span style="font-size:8px; line-height:0.8;">SKIP</span>`;
+        } else {
+          btn.innerHTML = '⚔️';
+        }
+      }
       break;
     case 'STAGE_CLEAR':
       won = true;

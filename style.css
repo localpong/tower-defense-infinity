@@ -387,8 +387,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 #toolbar{display:flex;gap:5px;padding:2px 8px;background:var(--bg2);border-top:1px solid var(--border);justify-content:space-between;align-items:center;}
 #toolbar-towers::-webkit-scrollbar { display: none; }
 .tower-btn{
-  flex: none; /* Prevent shrinking */
-  min-width:65px; padding:4px 2px; border-radius:12px; border:1px solid var(--border);
+  padding:4px 2px; border-radius:12px; border:1px solid var(--border);
   background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
   color:var(--text);cursor:pointer;font-size:16px;display:flex;flex-direction:column;align-items:center;
   gap:1px;transition:all 0.2s; touch-action: pan-x;

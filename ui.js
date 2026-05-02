@@ -26,20 +26,6 @@ function updateSpeedUI(){
   btn.textContent=['1x','2x','3x'][speedMode];
   btn.className=['','x2','x3'][speedMode];
 }
-function toggleAutoWave(){
-  playSfx('click');
-  autoWaveEnabled = !autoWaveEnabled;
-  updateAutoWaveUI();
-  if(autoWaveEnabled && !waveRunning && wave < 10) {
-    startWave(); // Start next wave immediately if conditions met
-  }
-}
-function updateAutoWaveUI(){
-  const btn=document.getElementById('auto-wave-btn');
-  if (autoWaveEnabled) btn.classList.add('active');
-  else btn.classList.remove('active');
-  btn.textContent = autoWaveEnabled ? 'ON🌊' : 'A🌊';
-}
 function toggleAutoUpgrade(){
   playSfx('click');
   autoUpgradeEnabled = !autoUpgradeEnabled;
@@ -97,15 +83,23 @@ function showMsg(title,sub,btn1Text,btn1Fn,btn2Text,btn2Fn){
 function showNotEnoughGold(td, x, y){
   addPart(x, y - 20, `💰 ไม่พอ ${td.cost}g`, 20); // แสดงข้อความลอยขึ้น
 }
-function cancelGame(){
-  showMsg('❌ ยกเลิกเกม','คุณแน่ใจหรือว่าจะออกจากเกม? จะไม่ได้รับเพรชที่ได้มา','ใช่ ออกจากเกม',()=>{
-    if (isMultiplayer) {
-      cancelMultiplayer();
-    } else {
-      gotoHome();
-    }
+function pauseGame(){
+  playSfx('click');
+  if(gameOver || won) {
+    if (isMultiplayer) cancelMultiplayer(); else gotoHome();
     if(animFrame) cancelAnimationFrame(animFrame);
-  },'ยกเลิก',hideMsg);
+    return;
+  }
+  isPaused = true;
+  showMsg('⏸️ หยุดเกมชั่วคราว','ต้องการเล่นต่อหรือออกจากด่าน?','▶ เล่นต่อ',()=>{
+    isPaused = false;
+    lastTime = performance.now(); // ป้องกันการกระตุกเมื่อกลับเข้าเกม
+    hideMsg();
+  },'🏠 ออกจากเกม',()=>{
+    isPaused = false;
+    if (isMultiplayer) cancelMultiplayer(); else gotoHome();
+    if(animFrame) cancelAnimationFrame(animFrame);
+  });
 }
 
 // ===== UI ACTIONS / CANVAS INTERACTION =====
@@ -544,8 +538,8 @@ function selectTowerForUpgrade(i) {
   const summary = document.getElementById('tw-loadout-summary');
   const maxSlots = getUnlockedSlots();
   summary.innerHTML = '';
-  const unlockThresholds = [1, 1, 1, 1, 10, 20, 30, 40, 50]; // เลเวลที่ปลดล็อกช่องที่ 5 ถึง 9
-  const displaySlots = Math.min(9, maxSlots + 1); // แสดงช่องที่ปลดล็อกแล้ว + 1 ช่องที่กำลังจะปลดล็อก
+  const unlockThresholds = [1, 1, 1, 1, 10, 20, 30, 40]; // เลเวลที่ปลดล็อกช่องที่ 5 ถึง 8
+  const displaySlots = Math.min(8, maxSlots + 1); // แสดงช่องที่ปลดล็อกแล้ว + 1 ช่องที่กำลังจะปลดล็อก
 
   for(let s=0; s<displaySlots; s++) {
     const isLocked = s >= maxSlots;
@@ -643,7 +637,6 @@ function doTowerPermanentUpgrade() {
 
 function getUnlockedSlots() {
   const best = saveData.bestLevel || 1;
-  if (best >= 50) return 9; // มี 9 ป้อมครบทุกช่อง
   if (best >= 40) return 8;
   if (best >= 30) return 7;
   if (best >= 20) return 6;
@@ -981,22 +974,39 @@ function checkAndMergeItems() {
 // ===== ELEMENTAL INFO DIALOG =====
 function showElementInfo() {
   playSfx('click');
+  const sIdx = (currentLevel - 1) % STAGES.length;
+  
+  let monstersHtml = '';
+  let bossHtml = '';
+  
+  if (sIdx === 0) {
+    monstersHtml = `🧌 โทรลล์ (พืช) : <span style="color:#FF6B35;font-weight:bold;">แพ้ไฟ 🔥</span><br>👺 ก๊อบลิน (พืช) : <span style="color:#FF6B35;font-weight:bold;">แพ้ไฟ 🔥</span><br>🦅 นกยักษ์ (บิน) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span><br>🧙 พ่อมดก๊อบลิน (มืด) : <span style="color:#9b59b6;font-weight:bold;">แพ้เวทมนตร์ 🪄</span><br><div style="color:var(--red); font-weight:900; margin-top:8px; margin-bottom:4px;">การต้านทาน (Resist)</div><span style="color:var(--muted);font-size:10px;">🛡️ ศัตรูพืช กันน้ำแข็ง</span>`;
+    bossHtml = `🐉 มังกร (ไฟ) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันไฟ</span><br>🦑 คราเคน (น้ำ) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันน้ำแข็ง</span>`;
+  } else if (sIdx === 1) {
+    monstersHtml = `🕷️ แมงมุม (แมลง) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span><br>🐺 หมาป่า (สัตว์) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span><br>🐝 ผึ้งนักฆ่า (บิน) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span><br>🥀 ดอกไม้กินคน (พืช) : <span style="color:#FF6B35;font-weight:bold;">แพ้ไฟ 🔥</span><br><div style="color:var(--red); font-weight:900; margin-top:8px; margin-bottom:4px;">การต้านทาน (Resist)</div><span style="color:var(--muted);font-size:10px;">🛡️ แมลง กันสายฟ้า | พืช กันน้ำแข็ง</span>`;
+    bossHtml = `🐉 มังกร (ไฟ) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันไฟ</span><br>🦑 คราเคน (น้ำ) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันน้ำแข็ง</span>`;
+  } else if (sIdx === 2) {
+    monstersHtml = `🪨 โกเลมทราย (ดิน) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span><br>🦂 แมงป่อง (แมลง) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span><br>🦇 ค้างคาวทราย (บิน) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span><br>🥷 โจรทะเลทราย (มืด) : <span style="color:#9b59b6;font-weight:bold;">แพ้เวทมนตร์ 🪄</span><br><div style="color:var(--red); font-weight:900; margin-top:8px; margin-bottom:4px;">การต้านทาน (Resist)</div><span style="color:var(--muted);font-size:10px;">🛡️ ดิน/หิน กันสายฟ้า</span>`;
+    bossHtml = `🐛 หนอนทะเลทราย (ดิน) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันไฟ/ระเบิด</span>`;
+  } else if (sIdx === 3) {
+    monstersHtml = `🌋 โกเลมลาวา (ไฟ) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span><br>🦖 กิ้งก่าไฟ (สัตว์) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span><br>🐉 ลูกมังกร (บิน) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span><br>👿 อิมป์ (มืด) : <span style="color:#9b59b6;font-weight:bold;">แพ้เวทมนตร์ 🪄</span><br><div style="color:var(--red); font-weight:900; margin-top:8px; margin-bottom:4px;">การต้านทาน (Resist)</div><span style="color:var(--muted);font-size:10px;">🛡️ ศัตรูทุกตัวในด่าน กันไฟ 🔥</span>`;
+    bossHtml = `🐉 มังกร (ไฟ) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันไฟ</span><br>🦑 คราเคน (น้ำ) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันน้ำแข็ง</span>`;
+  } else {
+    monstersHtml = `⛄ เยติ (น้ำแข็ง) : <span style="color:#FF6B35;font-weight:bold;">แพ้ไฟ 🔥</span><br>🐻‍❄️ หมีขาว (สัตว์) : <span style="color:#FF6B35;font-weight:bold;">แพ้ไฟ 🔥</span><br>🦉 นกฮูกหิมะ (บิน) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span><br>👻 วิญญาณน้ำแข็ง (มืด) : <span style="color:#9b59b6;font-weight:bold;">แพ้เวทมนตร์ 🪄</span><br><div style="color:var(--red); font-weight:900; margin-top:8px; margin-bottom:4px;">การต้านทาน (Resist)</div><span style="color:var(--muted);font-size:10px;">🛡️ ศัตรูทุกตัวในด่าน กันน้ำแข็ง ❄️</span>`;
+    bossHtml = `🐉 มังกร (ไฟ) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันไฟ</span><br>🦑 คราเคน (น้ำ) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันน้ำแข็ง</span>`;
+  }
+
   const info = `
     <div style="text-align:left; font-size:13px; line-height:1.7; color:var(--text); margin-top:10px; background:rgba(0,0,0,0.3); padding:12px; border-radius:10px; border:1px solid var(--border); max-height:60vh; overflow-y:auto;">
-      <div style="color:var(--gold); font-weight:900; margin-bottom:4px;">ศัตรูทั่วไป (ด่านปกติ)</div>
-      🧌 โทรลล์ (พืช) : <span style="color:#FF6B35;font-weight:bold;">แพ้ไฟ 🔥</span> <span style="color:var(--muted);font-size:10px;">| กันน้ำแข็ง</span><br>
-      🕷️ แมงมุม (แมลง) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| กันสายฟ้า</span><br>
-      🦇 ค้างคาว (บิน) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span><br>
-      👿 ปีศาจ (มืด) : <span style="color:#9b59b6;font-weight:bold;">แพ้เวทมนตร์ 🪄</span><br>
+      <div style="color:var(--gold); font-weight:900; margin-bottom:4px;">ศัตรูในด่านนี้ (${STAGES[sIdx].name})</div>
+      ${monstersHtml}
       <div style="color:var(--red); font-weight:900; margin-top:8px; margin-bottom:4px;">บอสประจำด่าน (Wave 10)</div>
-      🐉 มังกร (ไฟ) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันไฟ</span><br>
-      🦑 คราเคน (น้ำ) : <span style="color:#FFD700;font-weight:bold;">แพ้สายฟ้า ⚡</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันน้ำแข็ง</span><br>
-      🐛 หนอนทะเลทราย (ดิน) : <span style="color:#64B5F6;font-weight:bold;">แพ้น้ำแข็ง ❄️</span> <span style="color:var(--muted);font-size:10px;">| 🛡️ กันไฟ/ระเบิด</span><br>
+      ${bossHtml}
       <div style="margin-top:8px; font-size:10px; color:var(--muted); line-height:1.4;">
         * โจมตีจุดอ่อน ดาเมจ <span style="color:var(--green);font-weight:bold;">x1.5</span> เท่า<br>
         * โจมตีธาตุที่ต้านทาน ดาเมจ <span style="color:var(--red);font-weight:bold;">ลดลง 50%</span>
       </div>
     </div>
   `;
-  showMsg('📖 ข้อมูลแพ้ทางธาตุ', info, 'เข้าใจแล้ว', hideMsg);
+  showMsg('📖 ข้อมูลแพ้ทางธาตุ', info, 'ปิดหน้าต่าง', hideMsg);
 }

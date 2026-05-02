@@ -7,6 +7,11 @@ const FRAME_MIN_TIME = 1000 / 60; // ขีดจำกัด 60 FPS (~16.67ms �
 function loop(ts){
   animFrame=requestAnimationFrame(loop);
 
+  if (isPaused) {
+    lastTime = ts; // หยุดเวลาขณะที่เกมถูกหยุดชั่วคราว
+    return;
+  }
+
   // ระบบจำกัด FPS (Throttle)
   const elapsed = ts - lastDrawTime;
   if (elapsed < FRAME_MIN_TIME) return; // ข้ามเฟรมนี้หากยังไม่ถึงเวลา (จอ 120Hz/144Hz จะไม่ทำงานหนักเกินไป)
@@ -16,6 +21,20 @@ function loop(ts){
   lastTime=ts;
   if(!gameOver&&!won){
     updateHeroHud();
+
+    // ระบบนับถอยหลัง Wave
+    if (waveCountdown > 0) {
+      waveCountdown -= rawDt;
+      if (waveCountdown <= 0) {
+        waveCountdown = 0;
+        doStartWave(); // เริ่มเวฟเมื่อหมดเวลา
+      } else {
+        const btn = document.getElementById('wave-btn');
+        if (btn && !btn.disabled) {
+          btn.innerHTML = `<span style="font-size:16px;">${Math.ceil(waveCountdown)}s</span><br><span style="font-size:8px; line-height:0.8;">SKIP</span>`;
+        }
+      }
+    }
 
     // ระบบ Sub-stepping: แยกการวาดภาพ (Render) ออกจากการคำนวณ (Logic)
     // วนลูปคำนวณลอจิกตามความเร็วเกม (1x, 2x, 3x) เพื่อป้องกันบั๊กกระสุนทะลุศัตรู
@@ -44,7 +63,7 @@ function loop(ts){
       // ซิงค์ข้อมูลหลักและตำแหน่งทุก 0.1 วินาที (10Hz) เพื่อความลื่นไหล
       syncTimer += rawDt;
       if (syncTimer >= 0.1) {
-        sendNetData('SYNC_STATS', { gold, hp, mana, wave, speedMode, speedMult, waveRunning, autoWaveEnabled, autoUpgradeEnabled });
+        sendNetData('SYNC_STATS', { gold, hp, mana, wave, speedMode, speedMult, waveRunning, isPaused, waveCountdown, autoUpgradeEnabled });
         const syncData = enemies.map(e => ({ id: e.id, p: e.progress, hp: e.hp }));
         sendNetData('SYNC_ENEMIES', syncData);
         syncTimer = 0;
@@ -70,10 +89,9 @@ function loop(ts){
     if(waveRunning && enemies.length===0 && (isMultiplayer ? (isHost && waveQueue.length===0) : waveQueue.length===0)){
       waveRunning=false;
       if(wave>=10){ won=true; collectAllPickups(); gotoResult(true); return; }
-      // Auto start next wave if enabled
-      if(autoWaveEnabled) {
-        startWave();
-      }
+      
+      // เริ่มนับถอยหลัง 15 วินาทีสำหรับ Wave ถัดไปโดยอัตโนมัติ
+      waveCountdown = 15;
       document.getElementById('wave-btn').disabled=false;
     }
     if(autoUpgradeEnabled) checkAutoUpgrades();
@@ -255,8 +273,9 @@ function initGame(remoteHeroInitialData = null){ // รับข้อมูล 
   selectedType=null; selectedTower=null;
   weatherParticles=[];
   speedMult=1; speedMode=0;
-  autoWaveEnabled=false;
   autoUpgradeEnabled=false;
+  isPaused=false;
+  waveCountdown=15; // ให้เวฟแรกเริ่มนับถอยหลัง 15 วินาที
   pickups=[];
   enemyBullets=[];
   heroBullets=[];
@@ -338,7 +357,6 @@ function initGame(remoteHeroInitialData = null){ // รับข้อมูล 
   updateHeroHud();
   updateHUD();
   updateSpeedUI();
-  updateAutoWaveUI();
   updateAutoUpgradeUI();
   document.getElementById('wave-btn').disabled=false;
   renderGameToolbar();
@@ -580,7 +598,6 @@ function updateWeather(dt){
 
 // ===== WAVES =====
 function startWave(){
-  initAudio(); playSfx('wave');
   if(waveRunning||wave>=10)return;
   
   // ถ้าเป็น Multiplayer และเป็น Guest ให้ส่งคำขอไปหา Host
@@ -589,7 +606,20 @@ function startWave(){
     return;
   }
 
+  initAudio(); playSfx('click');
+  // ข้ามเวลานับถอยหลัง (Skip) หรือเริ่มนับถอยหลังเวฟ
+  if (waveCountdown > 0) {
+    waveCountdown = 0;
+    doStartWave();
+  } else {
+    waveCountdown = 15;
+  }
+}
+
+function doStartWave() {
+  playSfx('wave');
   wave++; updateHUD();
+  document.getElementById('wave-btn').innerHTML = '⚔️';
   document.getElementById('wave-btn').disabled=true;
   const lvScale = currentLevel-1;
   const count = WAVE_COUNTS[wave-1] + Math.floor(lvScale*1.8); // More enemies at higher levels
@@ -619,12 +649,16 @@ function spawnEnemy(hpMult,isBoss,spdMult=1, forcedPathIdx=null, forcedType=null
   }
 
   // Enemy Types Logic
-  const type = forcedType !== null ? forcedType : Math.floor(Math.random()*4);
-  let typeHpM = 1, typeSpdM = 1, typeGoldM = 1;
+  // สุ่มเลือกประเภทศัตรูตามด่านปัจจุบัน (ด่านละ 4 ประเภท มีทั้งหมด 5 ด่าน = 20 ประเภท)
+  const stageOffset = ((currentLevel - 1) % STAGES.length) * 4;
+  const typeClass = Math.floor(Math.random() * 4); // 0=Tank, 1=Fast, 2=Flying, 3=Ranged
+  const type = forcedType !== null ? forcedType : stageOffset + typeClass;
   
-  if(type === 1) { typeHpM = 1.8; typeSpdM = 0.6; } // Tanky
-  if(type === 2) { typeHpM = 0.6; typeSpdM = 1.6; } // Fast
-  if(type === 3) { typeHpM = 0.8; typeSpdM = 0.9; } // Ranged
+  let typeHpM = 1, typeSpdM = 1;
+  if(typeClass === 0) { typeHpM = 1.4; typeSpdM = 0.8; } // Tanky
+  if(typeClass === 1) { typeHpM = 0.7; typeSpdM = 1.4; } // Fast
+  if(typeClass === 2) { typeHpM = 0.5; typeSpdM = 1.8; } // Flying
+  if(typeClass === 3) { typeHpM = 0.8; typeSpdM = 0.9; } // Ranged
 
   // สุ่มเลือกเส้นทางให้ศัตรูตัวนี้
   const isDesert = ((currentLevel - 1) % STAGES.length) === 2;
@@ -638,8 +672,8 @@ function spawnEnemy(hpMult,isBoss,spdMult=1, forcedPathIdx=null, forcedType=null
     progress:0, dead:false, isBoss, slowTimer:0, walkAnimState:0, walkAnimTimer:0, pathIdx: pIdx,
     reward: isBoss ? Math.round(50*(1+lvScale*0.2)) : Math.round(8*(1+lvScale*0.1) * typeHpM),
     type: type,
-    shootTimer: type === 3 ? 1.5 : 0,
-    shootRange: type === 3 ? 160 : 0,
+    shootTimer: typeClass === 3 ? 1.5 : 0,
+    shootRange: typeClass === 3 ? 160 : 0,
     summonTimer: isBoss ? 5.0 : 0,
     bossType: isBoss ? (isDesert ? 2 : (wave % 10 === 0 ? 1 : 0)) : 0, // 2: หนอนมุดดิน, 1: มังกรพ่นไฟ, 0: คราเคน
     isBurrowed: false
@@ -651,7 +685,9 @@ function spawnEnemy(hpMult,isBoss,spdMult=1, forcedPathIdx=null, forcedType=null
 function spawnMinion(hpMult, pIdx, progress, forcedId = null) {
   const lvScale = currentLevel - 1;
   const baseHP = 50; // สมุนจะเลือดน้อยกว่าปกติเล็กน้อย
-  const type = Math.floor(Math.random() * 3); // สมุนจะไม่เป็นสายยิงเพื่อไม่ให้รกเกินไป
+  
+  const stageOffset = ((currentLevel - 1) % STAGES.length) * 4;
+  const type = stageOffset + Math.floor(Math.random() * 3); // สมุนจะเป็นประเภท 0, 1, 2 ของด่านนั้นๆ ไม่เป็นสายยิง (3)
   const hp2 = Math.round(baseHP * hpMult);
   const pos = getPathPos(progress, pIdx);
   if (!pos) return;
@@ -892,17 +928,24 @@ function dealDmg(e,dmg,isSkill=false,isHero=false,sourceType=null){
         else if (isIce) { elementMult = 0.5; elemText = '🛡️'; } // กันน้ำแข็ง
       }
     } else {
-      if (e.type === 0) { // 🧌 โทรลล์ (Earth/Nature)
-        if (isFire) { elementMult = 1.5; elemText = '🔥'; } // แพ้ไฟ
-        else if (isIce) { elementMult = 0.5; elemText = '🛡️'; } // กันน้ำแข็ง
-      } else if (e.type === 1) { // 🕷️ แมงมุม (Beast/Bug)
-        if (isIce) { elementMult = 1.5; elemText = '❄️'; } // แพ้น้ำแข็ง
-        else if (isLightning) { elementMult = 0.5; elemText = '🛡️'; } // กันสายฟ้า
-      } else if (e.type === 2) { // 🦇 ค้างคาว (Flying)
-        if (isLightning) { elementMult = 1.5; elemText = '⚡'; } // แพ้สายฟ้า
-      } else if (e.type === 3) { // 👿 ปีศาจ (Dark)
-        if (isMagic) { elementMult = 1.5; elemText = '✨'; } // แพ้เวทมนตร์
-      }
+      // แพ้ทางธาตุครอบคลุมศัตรูทั้ง 20 สายพันธุ์
+      const weakFire = [0, 1, 7, 16, 17]; // พืช, หิมะ
+      const weakIce = [4, 5, 8, 9, 12, 13]; // แมลง, สัตว์ทะเลทราย, ภูเขาไฟ
+      const weakLightning = [2, 6, 10, 14, 18]; // สายบินทั้งหมด
+      const weakMagic = [3, 11, 15, 19]; // สายมืดทั้งหมด
+
+      const resistFire = [12, 13, 14, 15]; // ด่านภูเขาไฟกันไฟ
+      const resistIce = [0, 1, 7, 16, 17, 18, 19]; // ด่านพืชและน้ำแข็งกันน้ำแข็ง
+      const resistLightning = [4, 8]; // แมงมุม/โกเลมทรายกันสายฟ้า
+
+      if (weakFire.includes(e.type) && isFire) { elementMult = 1.5; elemText = '🔥'; }
+      else if (weakIce.includes(e.type) && isIce) { elementMult = 1.5; elemText = '❄️'; }
+      else if (weakLightning.includes(e.type) && isLightning) { elementMult = 1.5; elemText = '⚡'; }
+      else if (weakMagic.includes(e.type) && isMagic) { elementMult = 1.5; elemText = '✨'; }
+
+      if (resistFire.includes(e.type) && isFire) { elementMult = 0.5; elemText = '🛡️'; }
+      else if (resistIce.includes(e.type) && isIce) { elementMult = 0.5; elemText = '🛡️'; }
+      else if (resistLightning.includes(e.type) && isLightning) { elementMult = 0.5; elemText = '🛡️'; }
     }
   }
 
