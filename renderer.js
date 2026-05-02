@@ -203,10 +203,6 @@ function render(){
     ctx.globalAlpha=1;
   });
   ctx.restore();
-  
-  const si=document.getElementById('speed-ind');
-  si.className=speedMode===0?'':speedMode===1?'x2':'x3';
-  si.textContent=speedMode===0?'▶ x1':speedMode===1?'▶▶ x2':'▶▶▶ x3';
 }
 
 function drawHeroEntity() {

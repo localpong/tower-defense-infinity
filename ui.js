@@ -23,8 +23,9 @@ function cycleSpeed(){
 }
 function updateSpeedUI(){
   const btn=document.getElementById('speed-btn');
-  btn.textContent=['1x','2x','3x'][speedMode];
-  btn.className=['','x2','x3'][speedMode];
+  if(!btn) return;
+  btn.textContent=speedMode===0?'▶ x1':speedMode===1?'▶▶ x2':'▶▶▶ x3';
+  btn.className='hud-tool-btn speed ' + (speedMode===0?'':speedMode===1?'x2':'x3');
 }
 function toggleAutoUpgrade(){
   playSfx('click');
@@ -36,7 +37,7 @@ function updateAutoUpgradeUI(){
   if(!btn) return;
   if (autoUpgradeEnabled) btn.classList.add('active');
   else btn.classList.remove('active');
-  btn.textContent = autoUpgradeEnabled ? 'ON⬆' : 'A⬆';
+  btn.textContent = autoUpgradeEnabled ? 'A⬆ ON' : 'A⬆ OFF';
 }
 
 // ===== MINIMAP =====
@@ -532,9 +533,57 @@ function renderTowerScreenList() {
 function selectTowerForUpgrade(i) {
   _selectedTwIdx = i;
   renderTowerScreenList();
+  renderTowerSummary();
   const t = TOWER_TYPES[i];
   const lv = saveData.towerLevels[i] || 0;
   
+  document.getElementById('tw-em-big').textContent = t.emoji;
+  document.getElementById('tw-name-big').textContent = t.name;
+  document.getElementById('tw-lv-big').textContent = `ถาวรเลเวล ${lv + 1}`;
+  
+  const permMult = 1 + (lv * 0.1);
+  const nextMult = 1 + ((lv + 1) * 0.1);
+  
+  document.getElementById('tw-stats-grid').innerHTML = `
+    <div class="tw-stat-card"><div class="tw-stat-label">ดาเมจพื้นฐาน</div><div class="tw-stat-val">${Math.round(t.dmg * permMult)}</div><div class="tw-stat-next">→ ${Math.round(t.dmg * nextMult)}</div></div>
+    <div class="tw-stat-card"><div class="tw-stat-label">โบนัสถาวร</div><div class="tw-stat-val">+${lv * 10}%</div><div class="tw-stat-next">→ +${(lv + 1) * 10}%</div></div>
+  `;
+  
+  const loadoutBtn = document.getElementById('tw-loadout-toggle');
+  const isInLoadout = saveData.selectedTowers.includes(i);
+  loadoutBtn.textContent = isInLoadout ? 'ถอดออก' : 'เลือกใช้';
+  
+  if(isInLoadout) {
+    loadoutBtn.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+    loadoutBtn.style.borderColor = 'var(--red)';
+    loadoutBtn.style.color = '#ff8b8b';
+  } else {
+    loadoutBtn.style.backgroundColor = 'transparent';
+    loadoutBtn.style.borderColor = 'var(--blue)';
+    loadoutBtn.style.color = 'var(--blue)';
+  }
+  
+  const upBtn = document.getElementById('tw-upgrade-btn');
+  const cost = (lv + 1) * 100;
+  if (lv >= 20) {
+    upBtn.textContent = 'เลเวลสูงสุดแล้ว';
+    upBtn.disabled = true;
+  } else {
+    upBtn.textContent = `อัพเกรดดาเมจ (${cost} 💎)`;
+    upBtn.disabled = saveData.gems < cost;
+  }
+
+  document.getElementById('tw-detail-modal').style.display = 'flex';
+}
+
+function closeTowerDetail() {
+  playSfx('click');
+  document.getElementById('tw-detail-modal').style.display = 'none';
+  _selectedTwIdx = -1;
+  renderTowerScreenList();
+}
+
+function renderTowerSummary() {
   const summary = document.getElementById('tw-loadout-summary');
   const maxSlots = getUnlockedSlots();
   summary.innerHTML = '';
@@ -563,7 +612,8 @@ function selectTowerForUpgrade(i) {
             currentTowers.splice(s, 1);
             playSfx('click');
             saveGame();
-            selectTowerForUpgrade(_selectedTwIdx);
+            renderTowerSummary();
+            renderTowerScreenList();
           } else {
             showToast('ต้องมีป้อมอย่างน้อย 1 ชนิดเสมอ', 'var(--red)');
           }
@@ -571,33 +621,6 @@ function selectTowerForUpgrade(i) {
       }
     }
     summary.appendChild(slot);
-  }
-  
-  document.getElementById('tw-em-big').textContent = t.emoji;
-  document.getElementById('tw-name-big').textContent = t.name;
-  document.getElementById('tw-lv-big').textContent = `ถาวรเลเวล ${lv + 1}`;
-  
-  const permMult = 1 + (lv * 0.1);
-  const nextMult = 1 + ((lv + 1) * 0.1);
-  
-  document.getElementById('tw-stats-grid').innerHTML = `
-    <div class="tw-stat-card"><div class="tw-stat-label">ดาเมจพื้นฐาน</div><div class="tw-stat-val">${Math.round(t.dmg * permMult)}</div><div class="tw-stat-next">→ ${Math.round(t.dmg * nextMult)}</div></div>
-    <div class="tw-stat-card"><div class="tw-stat-label">โบนัสถาวร</div><div class="tw-stat-val">+${lv * 10}%</div><div class="tw-stat-next">→ +${(lv + 1) * 10}%</div></div>
-  `;
-  
-  const loadoutBtn = document.getElementById('tw-loadout-toggle');
-  const isInLoadout = saveData.selectedTowers.includes(i);
-  loadoutBtn.textContent = isInLoadout ? 'ถอดออก' : 'เลือกใช้';
-  loadoutBtn.className = isInLoadout ? 'active' : '';
-  
-  const upBtn = document.getElementById('tw-upgrade-btn');
-  const cost = (lv + 1) * 100;
-  if (lv >= 20) {
-    upBtn.textContent = 'เลเวลสูงสุดแล้ว';
-    upBtn.disabled = true;
-  } else {
-    upBtn.textContent = `อัพเกรดดาเมจ (${cost} 💎)`;
-    upBtn.disabled = saveData.gems < cost;
   }
 }
 
@@ -621,7 +644,10 @@ function toggleTowerLoadout() {
       playSfx('build');
     } else { showToast('ช่อง Loadout เต็มแล้ว!', 'var(--red)'); }
   }
-  saveGame(); selectTowerForUpgrade(i); renderHomeTowerSelect();
+  saveGame(); 
+  selectTowerForUpgrade(i); 
+  renderTowerSummary();
+  renderHomeTowerSelect();
 }
 
 function doTowerPermanentUpgrade() {

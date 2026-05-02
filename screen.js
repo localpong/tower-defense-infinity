@@ -126,8 +126,9 @@ function gotoHero(){
 function gotoTower(){
   initAudio(); playSfx('click');
   document.getElementById('tower-gems-val').textContent=saveData.gems;
+  _selectedTwIdx = -1; // รีเซ็ตการเลือกก่อนเข้าหน้าจอ
+  renderTowerSummary();
   renderTowerScreenList();
-  selectTowerForUpgrade(saveData.selectedTowers[0] || 0);
   showScreen('tower-screen');
 }
 

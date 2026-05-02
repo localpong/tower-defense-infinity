@@ -141,8 +141,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 
 #hero-list{display:flex;gap:8px;padding:10px 15px;overflow-x:auto;scrollbar-width:none;background:rgba(0,0,0,0.2);}
 #hero-list::-webkit-scrollbar{display:none;}
-#tw-list-container{display:flex;gap:10px;padding:15px;overflow-x:auto;scrollbar-width:none;background:rgba(0,0,0,0.3);border-bottom:1px solid var(--border);}
-#tw-list-container::-webkit-scrollbar{display:none;}
 .hl-btn{flex-shrink:0;width:65px;height:75px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s;position:relative;}
 .hl-btn.active{border-color:var(--gold);background:rgba(251,191,36,0.1);transform:scale(1.05);}
 .hl-btn.in-loadout { border-color: var(--gold); background: rgba(251, 191, 36, 0.05); }
@@ -180,15 +178,16 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 #hd-upgrade-btn:active{transform:translateY(3px);box-shadow:0 3px 0 #b45309;}
 #tw-upgrade-btn:active{transform:translateY(3px);box-shadow:0 3px 0 #b45309;}
 #hd-upgrade-btn:disabled{background:#1a1f26;color:var(--muted);box-shadow:none;opacity:0.5;cursor:default;}
-#tw-upgrade-btn:disabled{background:#1a1f26;color:var(--muted);box-shadow:none;opacity:0.5;cursor:default;}
 
 #hd-equip-btn{width:100%;padding:10px;border-radius:12px;border:2px solid var(--green);font-size:13px;font-weight:800;cursor:pointer;background:transparent;color:var(--green);transition:all .2s;}
 #hd-equip-btn.equipped{background:var(--green);color:#fff;box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);}
 
 /* ===== TOWER UPGRADE SCREEN ===== */
-#tower-screen { background: radial-gradient(circle at top, #1a1f26 0%, #05070a 100%); }
-#tw-detail { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
-#tw-portrait { text-align:center; padding:10px 0; background:rgba(255,255,255,0.02); border-radius:20px; border:1px solid var(--border); }
+#tower-screen { background: radial-gradient(circle at top, #1a1f26 0%, #05070a 100%); display: flex; flex-direction: column; }
+#tw-list-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 15px; overflow-y: auto; flex: 1; }
+#tw-list-container::-webkit-scrollbar { display: none; }
+#tw-list-container .hl-btn { width: 100%; height: auto; aspect-ratio: 1 / 1.1; }
+
 #tw-em-big { font-size:80px; filter:drop-shadow(0 0 20px var(--blue)); }
 #tw-name-big { font-size:24px; font-weight:950; margin-top:5px; }
 #tw-lv-big { font-size:14px; color:var(--gold); font-weight:800; text-transform:uppercase; }
@@ -207,12 +206,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 }
 .tw-summary-slot { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 12px; font-size: 24px; border: 1px dashed var(--border); transition: all 0.3s; }
 .tw-summary-slot.active { border: 1.5px solid var(--gold); background: rgba(251,191,36,0.1); box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); }
-
-#tw-loadout-toggle {
-  width:100%; padding:14px; border-radius:15px; border:2px solid var(--blue);
-  background:transparent; color:var(--blue); font-size:15px; font-weight:900; cursor:pointer;
-}
-#tw-loadout-toggle.active { background:var(--blue); color:#fff; }
 
 /* TOP CANCEL BUTTON */
 #top-cancel-btn {
@@ -239,10 +232,12 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
   display: flex; align-items: center; justify-content: center;
   transition: all 0.2s; backdrop-filter: blur(4px);
 }
+#speed-btn { font-size: 12px; font-weight: 900; height: 34px; padding: 0 12px; border-radius: 10px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px); }
 #speed-btn.x2 { border-color: var(--gold); color: var(--gold); background: rgba(251,191,36,0.1); }
 #speed-btn.x3 { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.1); }
 
 #auto-wave-btn.active { border-color: var(--green); background: rgba(16, 185, 129, 0.2); color: #fff; }
+#auto-upgrade-btn { font-size: 11px; font-weight: 900; height: 34px; padding: 0 10px; border-radius: 10px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px); }
 #auto-upgrade-btn.active { border-color: var(--gold); background: rgba(251, 191, 36, 0.2); color: #fff; }
 
 #wave-btn {
@@ -374,9 +369,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 #speed-btn.x3{border-color:var(--red);color:var(--red);}
 #game-area{position:relative;flex:1;}
 #game-canvas{display:block;width:100%;touch-action:none;}
-#speed-ind{position:absolute;top:5px;right:7px;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:var(--bg3);color:var(--muted);pointer-events:none;z-index:10;}
-#speed-ind.x2{background:#2d2200;color:var(--gold);} /* Keep this line */
-#speed-ind.x3{background:#2d0000;color:var(--red);}
 #toolbar{display:flex;gap:5px;padding:2px 8px;background:var(--bg2);border-top:1px solid var(--border);justify-content:space-between;align-items:center;}
 #toolbar-towers::-webkit-scrollbar { display: none; }
 .tower-btn{

@@ -141,16 +141,20 @@
   <div class="inv-section-title" style="margin: 10px 15px -5px; text-align:center;">Current Loadout</div>
   <div id="tw-loadout-summary"></div>
   <div id="tw-list-container"></div>
-  <div id="tw-detail">
-    <div id="tw-portrait" style="padding: 15px;">
+  
+  <div id="tw-detail-modal" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.85); z-index:100; flex-direction:column; justify-content:center; padding:20px; backdrop-filter:blur(5px);">
+    <div id="tw-detail" style="background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:20px; position:relative; max-width:400px; width:100%; margin:0 auto; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+      <button onclick="closeTowerDetail()" style="position:absolute; top:15px; right:15px; background:rgba(255,255,255,0.1); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; z-index:10; transition:all 0.2s;">✕</button>
+      <div id="tw-portrait" style="padding: 15px; text-align:center; background:rgba(255,255,255,0.02); border-radius:20px; border:1px solid var(--border); margin-bottom:15px;">
       <div id="tw-em-big">🏹</div>
       <div id="tw-name-big">ธนู</div>
       <div id="tw-lv-big">เลเวล 1</div>
     </div>
-    <div id="tw-stats-grid"></div>
-    <div class="hd-actions" style="margin-top: 5px;">
-      <button id="tw-loadout-toggle" onclick="toggleTowerLoadout()">นำเข้าด่าน</button>
-      <button id="tw-upgrade-btn" onclick="doTowerPermanentUpgrade()"></button>
+      <div id="tw-stats-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:15px;"></div>
+      <div class="hd-actions" style="display:flex; flex-direction:column; gap:8px; margin-top:5px;">
+        <button id="tw-loadout-toggle" onclick="toggleTowerLoadout()" style="width:100%; padding:14px; border-radius:15px; border:2px solid var(--blue); background:transparent; color:var(--blue); font-size:15px; font-weight:900; cursor:pointer; transition:all 0.2s;">เลือกใช้</button>
+        <button id="tw-upgrade-btn" onclick="doTowerPermanentUpgrade()" style="width:100%; padding:12px; border-radius:12px; border:none; font-size:15px; font-weight:900; cursor:pointer; background:linear-gradient(135deg, var(--gold) 0%, #f59e0b 100%); color:#000; box-shadow:0 3px 0 #b45309, 0 6px 10px rgba(245, 158, 11, 0.2); transition:all .1s; text-transform:uppercase;"></button>
+      </div>
     </div>
   </div>
 </div>
@@ -237,9 +241,6 @@
       <div class="status-item gold">💰 <span id="hud-gold">200</span></div>
       <div class="status-divider"></div>
       <div class="status-item wave">🌊 <span id="hud-wave">0</span><span class="wave-max">/10</span></div>
-      <div style="flex:1"></div>
-      <button class="hud-tool-btn speed" id="speed-btn" onclick="cycleSpeed()">1x</button>
-      <button class="hud-tool-btn auto-up" id="auto-upgrade-btn" onclick="toggleAutoUpgrade()">A⬆</button>
     </div>
   </div>
   <div id="hero-hud">
@@ -258,7 +259,10 @@
     <button class="hh-btn" id="hh-use" onclick="useHeroSkill()">⚡ ใช้ทักษะ</button>
   </div>
   <div id="game-area">
-    <div id="speed-ind">▶ x1</div>
+    <div id="floating-controls" style="position:absolute; top:10px; right:10px; display:flex; gap:8px; z-index:10;">
+      <button class="hud-tool-btn auto-up" id="auto-upgrade-btn" onclick="toggleAutoUpgrade()">A⬆ OFF</button>
+      <button class="hud-tool-btn speed" id="speed-btn" onclick="cycleSpeed()">▶ x1</button>
+    </div>
     <canvas id="game-canvas"></canvas>
     <div id="upgrade-panel">
       <button id="up-close" onclick="closeUpgrade()">✕</button>
@@ -272,7 +276,7 @@
     </div>
   </div>
   <div id="toolbar" style="padding-bottom: calc(24px + env(safe-area-inset-bottom)); padding-top: 6px;">
-    <div id="toolbar-towers" style="display:grid; grid-template-columns:repeat(4, 1fr); flex:1; gap:6px; padding:10px 8px;"></div>
+    <div id="toolbar-towers" style="display:grid; grid-template-columns:repeat(4, 1fr); flex:1; gap:6px; padding:10px 8px; max-height:140px; overflow-y:auto; touch-action:pan-y;"></div>
     <button id="wave-btn" onclick="startWave()" disabled>⚔️</button>
   </div>
 </div>
