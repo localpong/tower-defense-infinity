@@ -372,7 +372,8 @@ function drawTower(t){
   const r2 = CS * 0.38 * (1 + (scaleM - 1) * 0.6); // ขยายขนาดขึ้นถ้าวางพื้นที่กว้างกว่า
 
   // Draw range circle first, it should not recoil
-  if(selectedTower===t){
+  const isDragging = typeof draggingTowerType !== 'undefined' && draggingTowerType !== null;
+  if(selectedTower===t || isDragging){
     const h=HEROES[saveData.equippedHero], stats=getHeroStats(h,saveData.heroLevels[saveData.equippedHero]);
     const range=td.range*Math.sqrt(UPGRADE_MULT[t.level])+(stats.rangeBonus||0);
     ctx.beginPath();ctx.arc(x,y,range,0,Math.PI*2);

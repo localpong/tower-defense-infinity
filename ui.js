@@ -387,6 +387,10 @@ function startDragTower(ev, tIdx) {
   playSfx('click');
   if (heroEntity) heroEntity.selected = false;
   
+  try {
+    ev.target.setPointerCapture(ev.pointerId); // ล็อคนิ้วไม่ให้ไปกระตุ้นคำสั่งระบบมือถือ
+  } catch (e) {}
+  
   if (selectedType === tIdx) {
     closeSelType();
     return;
@@ -422,6 +426,8 @@ function onDragTowerMove(ev) {
 function onDragTowerUp(ev) {
   if (draggingTowerType === null) return;
   
+  try { ev.target.releasePointerCapture(ev.pointerId); } catch(e) {}
+
   if (ev.type === 'pointercancel') {
     if (selectedType !== null) closeSelType();
     draggingTowerType = null;
