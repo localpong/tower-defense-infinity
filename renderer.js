@@ -2,55 +2,6 @@
 
 // ===== OFFSCREEN CACHE (OPTIMIZATION) =====
 let bgCacheCanvas = null;
-const enemySpriteCache = {}; // เก็บตรายางภาพศัตรู
-
-function getEnemySprite(type, isBoss) {
-  const key = type + '_' + isBoss;
-  if (enemySpriteCache[key]) return enemySpriteCache[key]; // ถ้ามีภาพแล้ว ดึงไปใช้เลย
-
-  const r2 = isBoss ? CS * 0.45 : CS * 0.28;
-  const pad = 24; // เพิ่มระยะเผื่อขอบเงาและออร่าให้กว้างขึ้น
-  const size = r2 * 2 + pad;
-  const center = size / 2;
-
-  const c = document.createElement('canvas');
-  const dpr = window.devicePixelRatio || 1;
-  c.width = size * dpr;
-  c.height = size * dpr;
-  const ctx2 = c.getContext('2d');
-  ctx2.scale(dpr, dpr);
-
-  // ปรับชุดสีให้ดูเข้มและน่ากลัวขึ้น (Deeper & Darker)
-  const baseColors = ['#e53935', '#fb8c00', '#43a047', '#546e7a'];
-  const darkColors = ['#3e0000', '#4a2500', '#003300', '#1a1f24'];
-  const startColor = (isBoss ? '#ff1111' : baseColors[type]) || '#fff';
-  const endColor = (isBoss ? '#220000' : darkColors[type]) || '#111';
-
-  if (isBoss) {
-    ctx2.shadowColor = 'rgba(255, 0, 0, 0.8)';
-    ctx2.shadowBlur = 15;
-    ctx2.beginPath(); ctx2.arc(center, center, r2 + 4, 0, Math.PI * 2);
-    ctx2.strokeStyle = '#ff4444'; ctx2.lineWidth = 2; ctx2.setLineDash([4, 4]); ctx2.stroke(); ctx2.setLineDash([]);
-    ctx2.shadowBlur = 0; // รีเซ็ตเงาเพื่อไม่ให้กวนส่วนอื่น
-  }
-
-  const gradient = ctx2.createRadialGradient(center - r2*0.2, center - r2*0.2, r2 * 0.1, center, center, r2);
-  gradient.addColorStop(0, startColor);
-  gradient.addColorStop(1, endColor);
-
-  ctx2.beginPath(); ctx2.arc(center, center, r2, 0, Math.PI * 2);
-  ctx2.fillStyle = gradient; ctx2.fill();
-  ctx2.strokeStyle = endColor; ctx2.lineWidth = 1.5; ctx2.stroke();
-
-  // Specular Highlight (เพิ่มเงาสะท้อนแสงให้ดูเป็นทรงกลม 3D แบบเงางาม)
-  ctx2.beginPath();
-  ctx2.ellipse(center - r2*0.25, center - r2*0.35, r2*0.4, r2*0.15, Math.PI/8, 0, Math.PI * 2);
-  ctx2.fillStyle = 'rgba(255, 255, 255, 0.3)';
-  ctx2.fill();
-
-  enemySpriteCache[key] = { img: c, r2: r2, center: center, size: size };
-  return enemySpriteCache[key];
-}
 
 function cacheBackground() {
   if (!bgCacheCanvas) bgCacheCanvas = document.createElement('canvas');
@@ -406,42 +357,56 @@ function drawTower(t){
 }
 
 function drawEnemy(e){
-  const r2 = e.isBoss ? CS * 0.45 : CS * 0.28;
+  const r2 = e.isBoss ? CS * 0.5 : CS * 0.35; // ขยายขนาดรัศมีอ้างอิงให้เข้ากับไอคอนฮีโร่
   
   // คำนวณอนิเมชั่น (Squash, Stretch, Bobbing) ตามการเคลื่อนที่
   const animFreq = e.isBoss ? 2.5 : 5;
   const animProg = e.progress * animFreq;
-  const bobY = Math.abs(Math.sin(animProg)) * (e.isBoss ? -3 : -6); // กระโดดขึ้นลง
+  const bobY = Math.abs(Math.sin(animProg)) * (e.isBoss ? -4 : -8); // กระโดดขึ้นลงแบบ Hero
   const wobble = Math.sin(animProg) * (e.isBoss ? 0.05 : 0.15);     // เอียงซ้ายขวา
   const squash = 1 + Math.sin(animProg * 2) * 0.08;                // ยืดหดตัว
+  const side = Math.cos(animProg) > 0 ? 1 : -1; // โยกซ้ายขวาคล้ายการเดินของ Hero
 
-  // 1. วาดเงาที่พื้น (สร้างมิติแบบ 3D Perspective)
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  // ชุดสีตามประเภทศัตรู
+  const baseColors = ['#e53935', '#fb8c00', '#43a047', '#546e7a'];
+  const enemyColor = e.isBoss ? '#ff1111' : (baseColors[e.type] || '#fff');
+
+  // 1. วาดเงาที่พื้น (วาดก่อนให้ติดพื้น ไม่โยกตามตัว)
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
-  ctx.ellipse(e.x, e.y + r2 * 0.8, r2 * squash, r2 * 0.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(e.x, e.y + r2 * 0.8, r2 * squash, r2 * 0.5 * squash, 0, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.save();
-  // เลื่อนตำแหน่งและหมุนตามอนิเมชั่น
-  ctx.translate(e.x, e.y + bobY);
-  ctx.rotate(wobble);
-  ctx.scale(2 - squash, squash); 
-  
-  // วาดภาพศัตรูจาก Cache แทนการคำนวณ Gradient ใหม่ทุกตัวช่วยเพิ่ม FPS ได้มหาศาล
-  const spriteData = getEnemySprite(e.type, e.isBoss);
-  ctx.drawImage(spriteData.img, -spriteData.center, -spriteData.center, spriteData.size, spriteData.size);
+  ctx.translate(e.x, e.y);
 
-  // เอฟเฟกต์น้ำแข็ง (เมื่อโดน Slow) ทำให้ดูมีขอบชัดเจนและสวยงามขึ้น
+  // 2. Pseudo-3D Base (ฐานใต้ตัวแบบ Hero วาดที่พื้น)
+  const grad = ctx.createRadialGradient(0, r2*0.5, r2*0.2, 0, r2*0.5, r2*1.1);
+  grad.addColorStop(0, enemyColor);
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.globalAlpha = 0.4;
+  ctx.beginPath();
+  ctx.ellipse(0, r2*0.5, r2*1.1, r2*0.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1.0;
+
+  // เอฟเฟกต์น้ำแข็ง (เมื่อโดน Slow) ให้วาดที่ฐาน
   if (e.slowTimer > 0) { 
     ctx.fillStyle = 'rgba(100,181,246,0.3)'; 
     ctx.strokeStyle = 'rgba(100,181,246,0.8)';
     ctx.lineWidth = 1.5;
     ctx.beginPath(); 
-    ctx.arc(0, 0, r2 + 3, 0, Math.PI * 2); 
+    ctx.ellipse(0, r2*0.5, r2*1.1, r2*0.6, 0, 0, Math.PI * 2); 
     ctx.fill(); 
     ctx.stroke();
   }
   
+  // 3. เลื่อนตำแหน่งตัวอิโมจิขึ้นลงตามการเดิน
+  ctx.translate(0, bobY);
+  ctx.rotate(wobble);
+  ctx.scale(side * (2 - squash), squash); // พลิกซ้ายขวาและยืดหดตัว
+
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -449,14 +414,14 @@ function drawEnemy(e){
   ctx.shadowColor = e.isBoss ? 'rgba(255, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.8)';
   ctx.shadowBlur = e.isBoss ? 25 : 12;
 
-  // ปรับขนาดฟอนต์และทำตัวหนา (bold) ให้ใหญ่ขึ้นเล็กน้อยดูดุดัน
-  ctx.font = `bold ${e.isBoss ? CS * 0.6 : CS * 0.4}px serif`;
+  // ปรับขนาดฟอนต์และทำตัวหนาให้ใหญ่ขึ้นเพราะเราเอาวงกลมพื้นหลังออกแล้ว
+  ctx.font = `bold ${e.isBoss ? CS * 1.1 : CS * 0.75}px serif`;
   const enemyEmoji = e.isBoss ? (e.bossType === 1 ? '🐉' : '🦑') : WALK_EMOJIS[e.type][e.walkAnimState];
-  ctx.fillText(enemyEmoji, 0, 0);
+  ctx.fillText(enemyEmoji, 0, -r2 * 0.2);
 
   // วาดทับอีกชั้นแบบไม่มีเงาเพื่อให้สีหลักชัดเจนขึ้น ไม่จมไปกับเงา
   ctx.shadowBlur = 0;
-  ctx.fillText(enemyEmoji, 0, 0);
+  ctx.fillText(enemyEmoji, 0, -r2 * 0.2);
   ctx.restore();
 
   // UI หลอดเลือดที่ปรับปรุงใหม่ให้ดูโมเดิร์น
@@ -464,7 +429,7 @@ function drawEnemy(e){
   const bw = e.isBoss ? CS * 1.5 : CS * 1.1; // กว้างขึ้นสำหรับบอส
   const bh = e.isBoss ? 4.5 : 3.5;
   const bx = e.x - bw / 2;
-  const by = e.y - r2 - (e.isBoss ? 18 : 12);
+  const by = e.y - r2 - (e.isBoss ? 24 : 16); // ขยับหลอดเลือดขึ้นให้พ้นหัวอิโมจิ
 
   // พื้นหลังหลอดเลือดแบบโปร่งแสงและมุมโค้ง
   ctx.fillStyle = 'rgba(0,0,0,0.6)';
