@@ -9,7 +9,7 @@ const HEROES = [
   { id:1, emoji:'💂', name:'นักรบ', desc:'นักรบผู้เก่งกาจ เพิ่ม HP และพลังป้อมใกล้ชิด',
     color:'#ff6b6b', baseStats:{atkBonus:0,rangeBonus:0,goldBonus:0,hpBonus:5}, // Warrior
     perLv:{atkBonus:5,rangeBonus:0,goldBonus:5,hpBonus:3},
-    skill:{name:'โล่เหล็ก',emoji:'🛡️',desc:'ป้องกันความเสียหาย 3 ครั้งถัดไป',cd:40,manaCost:40}, // Increased CD/Mana
+    skill:{name:'ดาบผ่าปฐพี',emoji:'🗡️',desc:'สร้างความเสียหาย 150 แก่ศัตรูรอบตัวในรัศมี',cd:35,manaCost:35},
     upgradeCost:[60,90,130,170,210,260,320,380,440,520], maxLv:10 },
   { id:2, emoji:'🧝', name:'นักธนู', desc:'นักธนูผู้คล่องแคล่ว เพิ่มความเร็วยิงและโบนัสทอง',
     color:'#4CAF50', baseStats:{atkBonus:0,rangeBonus:10,goldBonus:10,hpBonus:0}, // Archer

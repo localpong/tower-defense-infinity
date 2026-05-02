@@ -377,6 +377,69 @@ function useHeroSkill(){
   updateHeroHud();
 }
 
+// ===== EXECUTE HERO SKILL =====
+function executeHeroSkillEffect(heroId) {
+  const h = HEROES[saveData.equippedHero];
+  const lv = saveData.heroLevels[saveData.equippedHero];
+  const stats = getHeroStats(h, lv);
+  const atkMult = 1 + (stats.atkBonus / 100);
+
+  shakeAmt = 15; // สั่นหน้าจอเมื่อฮีโร่ใช้สกิล
+
+  if (heroId === 0) { // 🧙‍♂️ พ่อมด: ไฟฝนฟ้า (ดาเมจวงกว้าง)
+    const dmg = 80 * atkMult;
+    enemies.forEach(e => {
+      if (!e.dead && !e.isBurrowed) {
+        dealDmg(e, dmg, true, true, 8); // sourceType 8 = ธาตุเวทมนตร์/ไฟ
+        addPart(e.x, e.y, '🔥', 35);
+      }
+    });
+  } else if (heroId === 1) { // 💂 นักรบ: ดาบผ่าปฐพี (ดาเมจรอบตัว)
+    const dmg = 150 * atkMult;
+    if (heroEntity) {
+      for (let i = 0; i < 8; i++) {
+        const angle = (Math.PI / 4) * i;
+        addPart(heroEntity.x + Math.cos(angle) * 45, heroEntity.y + Math.sin(angle) * 45, '🗡️', 35);
+      }
+      addPart(heroEntity.x, heroEntity.y, '💥', 50);
+
+      enemies.forEach(e => {
+        if (!e.dead && !e.isBurrowed) {
+          const dx = e.x - heroEntity.x, dy = e.y - heroEntity.y;
+          if (dx * dx + dy * dy < 150 * 150) { // รัศมี 150
+            dealDmg(e, dmg, true, true);
+            addPart(e.x, e.y, '🩸', 25);
+          }
+        }
+      });
+    }
+  } else if (heroId === 2) { // 🧝 นักธนู: ฝนลูกธนู (ยิงรัว 20 นัด)
+    const dmg = 15 * atkMult;
+    for (let i = 0; i < 20; i++) {
+      const validEnemies = enemies.filter(e => !e.dead && !e.isBurrowed);
+      if (validEnemies.length === 0) break;
+      const target = validEnemies[Math.floor(Math.random() * validEnemies.length)];
+      
+      if (heroEntity) {
+        const offsetX = (Math.random() - 0.5) * 80;
+        const offsetY = (Math.random() - 0.5) * 80 - 40;
+        heroBullets.push({
+          x: heroEntity.x + offsetX, y: heroEntity.y + offsetY,
+          tx: target, dmg: dmg, spd: 400 + Math.random() * 150,
+          heroId: heroId, emoji: '🏹', angle: 0
+        });
+      }
+    }
+  } else if (heroId === 3) { // 🧙‍♀️ จอมน้ำแข็ง: พายุน้ำแข็ง (สโลว์ 5 วิ)
+    enemies.forEach(e => {
+      if (!e.dead && !e.isBurrowed) {
+        e.slowTimer = 5.0; // สโลว์ 5 วินาที
+        addPart(e.x, e.y, '❄️', 35);
+      }
+    });
+  }
+}
+
 // ===== HERO BULLETS LOGIC =====
 function updateHeroBullets(dt) {
   for (let i = heroBullets.length - 1; i >= 0; i--) {
