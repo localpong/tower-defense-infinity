@@ -155,6 +155,27 @@ function selectHeroDetail(i){
       <div class="sk-info"><div class="sk-name">${h.skill.name}</div><div class="sk-desc">${h.skill.desc}</div></div>
       <div class="sk-lv">Lv.${lv+1}</div>
     </div>`;
+    
+  // Render Hero Equips
+  const equips = (saveData.heroEquips && saveData.heroEquips[i]) ? saveData.heroEquips[i] : [null, null, null, null];
+  const eqBox = document.getElementById('hd-equips');
+  if(eqBox) {
+    eqBox.innerHTML = '';
+    for(let s=0; s<4; s++) {
+      const eq = equips[s];
+      const div = document.createElement('div');
+      div.className = 'equip-box' + (eq ? ` active tier-${Math.min(eq.tier, 5)}` : '');
+      if(eq) {
+        const td = TOWER_TYPES[eq.type];
+        div.innerHTML = `<span style="font-size:22px;">${td.emoji}</span><span class="item-tier">T${eq.tier}</span>`;
+      } else {
+        div.innerHTML = `<span style="font-size:18px; opacity:0.3;">➕</span>`;
+      }
+      div.onclick = () => openEquipModal(i, s);
+      eqBox.appendChild(div);
+    }
+  }
+
   const cost=lv<h.maxLv?h.upgradeCost[lv]:null;
   const upBtn=document.getElementById('hd-upgrade-btn');
   if(cost===null){upBtn.textContent='✅ Level สูงสุดแล้ว';upBtn.disabled=true;}
@@ -177,6 +198,58 @@ function doHeroUpgrade(){
 }
 
 function doEquip(){ saveData.equippedHero=_selectedHeroIdx; selectHeroDetail(_selectedHeroIdx); }
+
+let _targetHeroForEquip = -1;
+let _targetSlotForEquip = -1;
+
+function openEquipModal(heroIdx, slotIdx) {
+  playSfx('click');
+  _targetHeroForEquip = heroIdx;
+  _targetSlotForEquip = slotIdx;
+  const modal = document.getElementById('equip-select-modal');
+  const grid = document.getElementById('equip-select-grid');
+  grid.innerHTML = '';
+  
+  if(!saveData.heroEquips) saveData.heroEquips = [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]];
+  const currentEq = saveData.heroEquips[heroIdx][slotIdx];
+  document.getElementById('btn-unequip').style.display = currentEq ? 'block' : 'none';
+
+  const groups = {};
+  saveData.inventory.forEach((item, idx) => {
+    const key = `${item.type}_${item.tier}`;
+    if(!groups[key]) groups[key] = { ...item, count: 0, firstIdx: idx };
+    groups[key].count++;
+  });
+
+  Object.values(groups).forEach(g => {
+    const td = TOWER_TYPES[g.type];
+    const div = document.createElement('div');
+    div.className = `inv-slot tier-${Math.min(g.tier, 5)}`;
+    div.innerHTML = `<span class="item-em">${td.emoji}</span><span class="item-tier">T${g.tier}</span><span class="item-count">x${g.count}</span>`;
+    div.onclick = () => doEquipItem(g.firstIdx);
+    grid.appendChild(div);
+  });
+  if(Object.keys(groups).length === 0) grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--muted); font-size:12px; padding:20px;">ไม่มีไอเทมในกระเป๋า</div>';
+  modal.style.display = 'flex';
+}
+
+function closeEquipModal() { playSfx('click'); document.getElementById('equip-select-modal').style.display = 'none'; }
+
+function doEquipItem(invIdx) {
+  playSfx('click');
+  const currentEq = saveData.heroEquips[_targetHeroForEquip][_targetSlotForEquip];
+  const itemToEquip = saveData.inventory.splice(invIdx, 1)[0];
+  if(currentEq) saveData.inventory.push(currentEq); // คืนของเก่าเข้ากระเป๋า
+  saveData.heroEquips[_targetHeroForEquip][_targetSlotForEquip] = itemToEquip;
+  saveGame(); closeEquipModal(); selectHeroDetail(_targetHeroForEquip);
+}
+
+function unequipCurrentSlot() {
+  playSfx('click');
+  saveData.inventory.push(saveData.heroEquips[_targetHeroForEquip][_targetSlotForEquip]);
+  saveData.heroEquips[_targetHeroForEquip][_targetSlotForEquip] = null;
+  saveGame(); closeEquipModal(); selectHeroDetail(_targetHeroForEquip);
+}
 
 function renderGameToolbar() {
   const container = document.getElementById('toolbar-towers');
@@ -692,8 +765,12 @@ function renderHomeTowerSelect() {
 
   saveData.selectedTowers.forEach(i => {
     const t = TOWER_TYPES[i];
-    const eq = saveData.equippedWeapons[i];
-    const eqMult = eq ? (1 + (eq.tier * 0.25)) : 1;
+    
+    let eqMult = 1;
+    if(saveData.heroEquips && saveData.heroEquips[saveData.equippedHero]) {
+      saveData.heroEquips[saveData.equippedHero].forEach(eq => { if(eq && eq.type === i) eqMult += (eq.tier * 0.25); });
+    }
+    
     const permLv = saveData.towerLevels[i] || 0;
     const permMult = 1 + (permLv * 0.1);
     const totalDmg = Math.round(t.dmg * permMult * atkMult * eqMult);
@@ -937,21 +1014,6 @@ function restartInfinity(){
 
 // ===== EQUIPMENT & MERGE LOGIC =====
 function renderInventory() {
-  const equipBox = document.getElementById('equip-slots');
-  equipBox.innerHTML = '';
-  TOWER_TYPES.forEach((td, i) => {
-    const eq = saveData.equippedWeapons[i];
-    const div = document.createElement('div');
-    const tCls = eq ? `tier-${Math.min(eq.tier, 5)}` : '';
-    div.className = 'equip-box' + (eq ? ` active ${tCls}` : '');
-    div.innerHTML = eq 
-      ? `<span style="font-size:22px;">${td.emoji}</span><span class="item-tier">T${eq.tier}</span>`
-      : `<span style="font-size:18px; opacity:0.3;">${td.emoji}</span>`;
-    div.innerHTML += `<div class="eb-type">${td.name}</div>`;
-    if(eq) div.onclick = () => { saveData.equippedWeapons[i] = null; renderInventory(); saveGame(); };
-    equipBox.appendChild(div);
-  });
-
   const grid = document.getElementById('inv-grid');
   grid.innerHTML = '';
   const groups = {};
@@ -965,13 +1027,14 @@ function renderInventory() {
   Object.values(groups).forEach(g => {
     const td = TOWER_TYPES[g.type];
     const div = document.createElement('div');
-    const tierClass = `tier-${Math.min(g.tier, 5)}`;
-    div.className = `inv-slot ${tierClass}`;
+    div.className = `inv-slot tier-${Math.min(g.tier, 5)}`;
     div.innerHTML = `<span class="item-em">${td.emoji}</span><span class="item-tier">T${g.tier}</span><span class="item-count">x${g.count}</span>`;
     div.onclick = () => {
-      saveData.equippedWeapons[g.type] = { type: g.type, tier: g.tier };
-      renderInventory();
-      saveGame();
+      if(g.count >= 4) {
+        checkAndMergeItems(); renderInventory(); playSfx('build'); showToast('✨ ตีบวกไอเทมสำเร็จ!', 'var(--gold)');
+      } else {
+        showToast(`ต้องใช้ 4 ชิ้นในการตีบวก (มี ${g.count}/4)`, 'var(--muted)');
+      }
     };
     grid.appendChild(div);
   });

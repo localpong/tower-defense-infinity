@@ -179,9 +179,21 @@
     <div id="hd-stats"></div>
     <div class="hd-skills-title">Unique Skill</div>
     <div id="hd-skills"></div>
+    <div class="hd-skills-title" style="margin-top:10px;">🎒 อุปกรณ์สวมใส่ (ส่งผลต่อป้อมชนิดนั้นๆ)</div>
+    <div id="hd-equips" style="display:flex; gap:8px; margin-top:5px; margin-bottom:5px;"></div>
     <div class="hd-actions">
       <button id="hd-upgrade-btn" onclick="doHeroUpgrade()"></button>
       <button id="hd-equip-btn" onclick="doEquip()"></button>
+    </div>
+  </div>
+  
+  <!-- Modal สำหรับเลือกไอเทมสวมใส่ -->
+  <div id="equip-select-modal" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.85); z-index:200; flex-direction:column; justify-content:center; padding:20px; backdrop-filter:blur(5px);">
+    <div style="background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:20px; position:relative; max-width:400px; width:100%; margin:0 auto; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+      <button onclick="closeEquipModal()" style="position:absolute; top:15px; right:15px; background:rgba(255,255,255,0.1); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; z-index:10; transition:all 0.2s;">✕</button>
+      <h3 style="color:var(--gold); margin-bottom:15px; text-align:center; font-size:16px;">เลือกไอเทมสวมใส่</h3>
+      <div id="equip-select-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; max-height:300px; overflow-y:auto; padding-bottom:10px;"></div>
+      <button onclick="unequipCurrentSlot()" id="btn-unequip" style="width:100%; padding:12px; margin-top:10px; border-radius:12px; background:rgba(239,68,68,0.2); color:#ff8b8b; border:1px solid var(--red); font-weight:bold; cursor:pointer; display:none; transition:all .2s;">ถอดไอเทมชิ้นนี้</button>
     </div>
   </div>
 </div>
@@ -193,9 +205,7 @@
     <div class="ht-title">📦 Inventory</div>
   </div>
   <div id="inv-content">
-    <div class="inv-section-title">Equipped Gear</div>
-    <div id="equip-slots"></div>
-    <div class="inv-section-title">Backpack (4 same = Merge)</div>
+    <div class="inv-section-title">Backpack (กดที่ไอเทมเมื่อมีครบ 4 ชิ้นเพื่อตีบวก)</div>
     <div id="inv-grid"></div>
   </div>
 </div>

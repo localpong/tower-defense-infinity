@@ -870,9 +870,14 @@ function updateTowers(dt){
     
     const range=td.range*Math.sqrt(lvM)+rangeBonus;
 
-    // Equipment Bonus (25% per Tier)
-    const eq = saveData.equippedWeapons[t.type];
-    const eqMult = eq ? (1 + (eq.tier * 0.25)) : 1;
+    // Equipment Bonus (25% per Tier) based on equipped Hero
+    let eqMult = 1;
+    if(saveData.heroEquips && saveData.heroEquips[saveData.equippedHero]) {
+      saveData.heroEquips[saveData.equippedHero].forEach(eq => {
+        if(eq && eq.type === t.type) eqMult += (eq.tier * 0.25);
+      });
+    }
+
     const permLv = saveData.towerLevels[t.type] || 0;
     const permMult = 1 + (permLv * 0.1);
     const dmg = td.dmg * lvM * permMult * atkBonusMult * eqMult;
