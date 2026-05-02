@@ -346,13 +346,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; background: #020408; p
 .stage-btn.cleared{border-color:var(--green);background:#0d2318;}
 .stage-btn.locked{opacity:.4;cursor:default;}
 .stage-btn .s-lbl{font-size:7px;color:var(--muted);margin-top:1px;}
-#game-hud{display:flex;align-items:center;justify-content:space-between;padding:2px 8px;background:var(--bg2);gap:4px;flex-wrap:wrap;}
-.hud-s{
-  display:flex;align-items:center;gap:3px;font-size:10px;font-weight:800;
-  background: rgba(30, 41, 59, 0.5); padding: 3px 6px; border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(4px);
-}
-.hud-s .hl{color:var(--muted);font-size:10px;font-weight:400;}
 #hero-hud{display:flex;align-items:center;gap:6px;padding:5px 10px;background:#0f1a0f;border-bottom:1px solid #1a2e1a;}
 #hero-hud .hh-em{font-size:18px;}
 #hero-hud .hh-info{flex:1;}

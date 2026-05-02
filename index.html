@@ -222,17 +222,24 @@
 
 <!-- GAME SCREEN -->
 <div id="game-screen" class="screen">
-  <div id="game-hud" style="padding-top: calc(2px + env(safe-area-inset-top));">
-    <button id="top-cancel-btn" onclick="pauseGame()">⏸</button>
-    <div class="hud-s" id="hud-stage-info"></div>
-    <div class="hud-s">❤️ <span id="hud-hp">20</span></div>
-    <div class="hud-s">💰 <span id="hud-gold">200</span>g</div>
-    <div class="hud-s">🌊 <span id="hud-wave">0</span>/10</div>
-    <div style="display:flex; gap:4px; align-items:center;">
-      <button onclick="showElementInfo()" style="background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.1); border-radius:8px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;" title="ข้อมูลธาตุ">📖</button>
-      <button id="game-mute-btn" onclick="toggleMute()" style="background:rgba(15, 23, 42, 0.8); border:1px solid rgba(255,255,255,0.1); border-radius:8px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;">🔊</button>
-      <button id="speed-btn" onclick="cycleSpeed()">1x</button>
-      <button id="auto-upgrade-btn" onclick="toggleAutoUpgrade()">A⬆</button>
+  <div id="game-hud" style="padding-top: calc(6px + env(safe-area-inset-top));">
+    <div class="hud-top-bar">
+      <button id="top-cancel-btn" onclick="pauseGame()">⏸</button>
+      <div class="hud-capsule" id="hud-stage-info"></div>
+      <div style="flex:1"></div>
+      <button class="hud-tool-btn" onclick="showElementInfo()" title="ข้อมูลธาตุ">📖</button>
+      <button class="hud-tool-btn" id="game-mute-btn" onclick="toggleMute()">🔊</button>
+    </div>
+    
+    <div class="hud-status-bar">
+      <div class="status-item hp">❤️ <span id="hud-hp">20</span></div>
+      <div class="status-divider"></div>
+      <div class="status-item gold">💰 <span id="hud-gold">200</span></div>
+      <div class="status-divider"></div>
+      <div class="status-item wave">🌊 <span id="hud-wave">0</span><span class="wave-max">/10</span></div>
+      <div style="flex:1"></div>
+      <button class="hud-tool-btn speed" id="speed-btn" onclick="cycleSpeed()">1x</button>
+      <button class="hud-tool-btn auto-up" id="auto-upgrade-btn" onclick="toggleAutoUpgrade()">A⬆</button>
     </div>
   </div>
   <div id="hero-hud">
